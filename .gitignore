@@ -41,3 +41,5 @@ coverage.json
 # Misc
 .vercel
 .turbo
+
+CLAUDE.md
