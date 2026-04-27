@@ -2,10 +2,10 @@
   <img src="docs/arya-logo.png" alt="ARYA Logo" width="200" />
 </p>
 
-<h1 align="center">ARYA — Autonomous Realtime Yield Agents</h1>
+<h1 align="center">ARYA - Autonomous Realtime Yield Agents</h1>
 
 <p align="center">
-  A multi-agent AI swarm that collaboratively analyzes, recommends, and executes DeFi yield farming strategies — with human-in-the-loop oversight.
+  A multi-agent AI swarm that collaboratively analyzes, recommends, and executes DeFi yield farming strategies - with human-in-the-loop oversight.
 </p>
 
 <p align="center">
@@ -60,9 +60,9 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 
 | Contract | Purpose |
 |----------|---------|
-| `YieldSwarmRegistry.sol` | ERC-7857 iNFT registry — each agent has a verifiable on-chain identity |
-| `StrategyVault.sol` | Human-in-the-loop approval gate — agents propose, only the owner can approve fund movements |
-| `AgentReputation.sol` | On-chain performance tracking — agents build verifiable reputation over time |
+| `YieldSwarmRegistry.sol` | ERC-7857 iNFT registry - each agent has a verifiable on-chain identity |
+| `StrategyVault.sol` | Human-in-the-loop approval gate - agents propose, only the owner can approve fund movements |
+| `AgentReputation.sol` | On-chain performance tracking - agents build verifiable reputation over time |
 
 ## Sponsor Integrations
 
@@ -144,7 +144,7 @@ open-agent/
 2. **Risk Agent** evaluates each opportunity with a multi-factor risk score
 3. **Orchestrator** packages the analysis into a strategy proposal
 4. **Dashboard** presents the proposal to the user with risk visualizations
-5. **User approves or rejects** — the `StrategyVault` contract enforces this gate on-chain
+5. **User approves or rejects** - the `StrategyVault` contract enforces this gate on-chain
 6. **Executor Agent** builds the swap transaction via Uniswap API and submits it
 7. **KeeperHub** monitors the position and triggers alerts if conditions change
 

@@ -1,4 +1,4 @@
-# ARYA — System Architecture
+# ARYA - System Architecture
 
 ## System Overview
 
@@ -162,8 +162,8 @@ Events:
   StrategyRejected(strategyId, reason)
 
 Modifiers:
-  onlyOwner — restricts approval/execution to wallet owner
-  belowRiskThreshold — auto-rejects high-risk strategies
+  onlyOwner - restricts approval/execution to wallet owner
+  belowRiskThreshold - auto-rejects high-risk strategies
 ```
 
 ### Contract 3: `AgentReputation.sol` *(cut first if behind schedule)*
@@ -181,7 +181,7 @@ Functions:
 
 ## Sponsor Integration Details
 
-### 0G (Primary — $7,500)
+### 0G (Primary - $7,500)
 
 | Component | Usage |
 |-----------|-------|
