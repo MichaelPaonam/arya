@@ -181,7 +181,7 @@ Functions:
 
 ## Sponsor Integration Details
 
-### 0G (Primary - $7,500)
+### 0G 
 
 | Component | Usage |
 |-----------|-------|
@@ -189,7 +189,7 @@ Functions:
 | 0G Storage | Store agent memory (discovered opportunities, risk assessments, strategy history). Persist swarm state between sessions |
 | ERC-7857 iNFT | Each agent gets an iNFT with encrypted metadata (model config, strategy weights). Verifiable agent identity |
 
-### Uniswap Foundation ($5,000)
+### Uniswap Foundation 
 
 | Endpoint | Usage |
 |----------|-------|
@@ -200,7 +200,7 @@ Functions:
 
 **Required:** FEEDBACK.md documenting developer experience with the API.
 
-### KeeperHub ($5,000 + $500 bonus)
+### KeeperHub 
 
 | Feature | Usage |
 |---------|-------|
