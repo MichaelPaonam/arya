@@ -99,8 +99,8 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-username>/open-agent.git
-cd open-agent
+git clone https://github.com/MichaelPaonam/arya.git
+cd arya
 
 # Install dependencies
 npm install
