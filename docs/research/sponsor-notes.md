@@ -72,7 +72,12 @@ Use this document to capture SDK capabilities, limitations, and gotchas for each
 - Supports 12 EVM chains, 20+ protocol integrations
 - Non-custodial wallets via Turnkey secure enclaves
 
-### MCP Server
+### REST API (primary integration for production)
+- Base URL: *(fill in during research)*
+- Auth method: *(fill in during research)*
+- Key endpoints: *(fill in during research)*
+
+### MCP Server (alternative for local development)
 - Connection method: *(fill in during research)*
 - Available tools/functions: *(fill in during research)*
 

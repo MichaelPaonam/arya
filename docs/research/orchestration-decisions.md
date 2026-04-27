@@ -78,7 +78,7 @@ State → shared object passed between nodes (opportunities, assessments, propos
 **Why not:**
 - Primarily Python (our stack is TypeScript)
 - Role-based abstraction hides too much control
-- KeeperHub prize track lists CrewAI integration as an option, but we can integrate KeeperHub directly via MCP without needing CrewAI as a wrapper
+- KeeperHub prize track lists CrewAI integration as an option, but we can integrate KeeperHub directly via REST API without needing CrewAI as a wrapper
 
 ### Custom Orchestrator - Also Strong Candidate
 
