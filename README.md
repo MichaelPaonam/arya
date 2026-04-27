@@ -125,7 +125,7 @@ npm run dev
 ## Project Structure
 
 ```
-open-agent/
+arya/
 ├── docs/
 │   ├── architecture/        # System design and diagrams
 │   ├── research/            # Yield farming and sponsor SDK research
