@@ -41,9 +41,11 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
     │  0G Chain  │  │ 0G Storage│  │ KeeperHub │
     │  (iNFT ID) │  │ (memory)  │  │ (automate)│
     └───────────┘  └───────────┘  └───────────┘
-                         │
-                   ┌─────▼──────┐
-                   │Uniswap API │
+          │              │
+    ┌─────▼─────┐  ┌─────▼──────┐
+    │Uniswap API│  │Upstash     │
+    │           │  │Redis       │
+    └───────────┘  │(sessions)  │
                    └────────────┘
 ```
 
@@ -70,7 +72,7 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 |---------|------------|
 | **0G** | Agent identity (ERC-7857 iNFT on 0G Chain), agent memory and strategy history (0G Storage), multi-agent swarm architecture |
 | **Uniswap Foundation** | Swap quoting, routing, and execution via Trading API. Pool data for opportunity discovery |
-| **KeeperHub** | Execution layer via MCP server. Automated workflows for position monitoring, rebalancing alerts, and yield harvesting |
+| **KeeperHub** | Execution layer via REST API. Automated workflows for position monitoring, rebalancing alerts, and yield harvesting |
 
 ## Tech Stack
 
@@ -78,12 +80,16 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 |-------|-----------|
 | Frontend | Next.js 14, React, TailwindCSS, shadcn/ui, Recharts |
 | Wallet | wagmi, viem, RainbowKit |
-| Agents | TypeScript |
+| Auth | SIWE (Sign-In With Ethereum) |
+| Agent Framework | LangGraph.js (TypeScript) |
+| LLM | Anthropic Claude Haiku 4.5 (BYOK) |
 | Contracts | Solidity, Hardhat |
 | Blockchain | 0G Chain Testnet, Ethereum Sepolia |
 | Storage | 0G Storage SDK |
+| Session/User Data | Upstash Redis |
 | Swap | Uniswap Trading API |
-| Automation | KeeperHub MCP Server |
+| Automation | KeeperHub REST API |
+| Deployment | Vercel (serverless + cron) |
 | Data | DefiLlama API, CoinGecko API |
 
 ## Getting Started
@@ -94,6 +100,8 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 - MetaMask configured for 0G Chain Testnet
 - Uniswap API key from [developers.uniswap.org](https://developers.uniswap.org)
 - KeeperHub account from [keeperhub.com](https://keeperhub.com)
+- Upstash Redis database from [upstash.com](https://upstash.com) (free tier)
+- Anthropic API key (for Standard plan - BYOK) from [console.anthropic.com](https://console.anthropic.com)
 
 ### Setup
 
@@ -113,14 +121,22 @@ cp .env.example .env
 cd packages/contracts
 npx hardhat test
 
-# Start the agent swarm
-cd packages/agents
-npm run start
-
-# Start the dashboard
+# Start the dashboard (local dev)
 cd packages/frontend
 npm run dev
 ```
+
+### Deploy to Vercel
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy (frontend + serverless agent functions)
+vercel --prod
+```
+
+Agents run as Vercel serverless functions (`/api/agents/*`). The Scout Agent scans on a 15-minute cron schedule. Risk, Orchestrator, and Executor agents trigger on demand.
 
 ## Project Structure
 
@@ -140,13 +156,14 @@ arya/
 
 ## How It Works
 
-1. **Scout Agent** scans DeFi protocols and discovers yield opportunities
-2. **Risk Agent** evaluates each opportunity with a multi-factor risk score
-3. **Orchestrator** packages the analysis into a strategy proposal
-4. **Dashboard** presents the proposal to the user with risk visualizations
-5. **User approves or rejects** - the `StrategyVault` contract enforces this gate on-chain
-6. **Executor Agent** builds the swap transaction via Uniswap API and submits it
-7. **KeeperHub** monitors the position and triggers alerts if conditions change
+1. **User connects wallet** via RainbowKit and signs in with SIWE (Sign-In With Ethereum)
+2. **Scout Agent** scans DeFi protocols and discovers yield opportunities
+3. **Risk Agent** evaluates each opportunity with a multi-factor risk score
+4. **Orchestrator** packages the analysis into a strategy proposal
+5. **Dashboard** presents the proposal to the user with risk visualizations
+6. **User approves or rejects** - the `StrategyVault` contract enforces this gate on-chain
+7. **Executor Agent** builds the swap transaction via Uniswap API and submits it
+8. **KeeperHub** monitors the position and triggers alerts if conditions change
 
 ## License
 
