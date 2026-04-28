@@ -95,16 +95,27 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 
 ## Getting Started
 
-### Prerequisites
+### For Users
+
+All you need to use ARYA:
+
+1. **A Web3 wallet** (MetaMask, Rainbow, etc.) — connect via the dashboard
+2. **An Anthropic API key** (Standard plan only) — enter in Settings for AI-powered analysis. Get one at [console.anthropic.com](https://console.anthropic.com)
+
+That's it. No accounts to create, no infrastructure to manage. Connect your wallet, optionally add your API key, and ARYA's agents start working for you.
+
+> Without an API key, ARYA still discovers opportunities and provides rule-based risk scores. Add a key to unlock AI-powered reasoning and strategy explanations.
+
+### For Developers
+
+Prerequisites for running ARYA locally:
 
 - Node.js 18+
-- MetaMask configured for 0G Chain Testnet
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (forge, cast, anvil)
 - Uniswap API key from [developers.uniswap.org](https://developers.uniswap.org)
-- KeeperHub account from [keeperhub.com](https://keeperhub.com)
+- KeeperHub API key (`kh_`) from [keeperhub.com](https://keeperhub.com)
 - Upstash Redis database from [upstash.com](https://upstash.com) (free tier)
-- Anthropic API key (for Standard plan - BYOK) from [console.anthropic.com](https://console.anthropic.com)
-
-### Setup
+- Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
 
 ```bash
 # Clone the repository
