@@ -638,7 +638,7 @@ LangGraph.js state persists in 0G Storage between serverless invocations.
 | Agent Framework | LangGraph.js | Agent orchestration with state graph |
 | LLM | Anthropic Claude API (Haiku 4.5) | Agent reasoning (BYOK - user provides API key) |
 | Contracts | Solidity | Smart contracts |
-| Contract Tooling | Hardhat or Foundry | Compile, test, deploy |
+| Contract Tooling | Foundry (forge, cast, anvil) | Compile, test, fuzz, deploy |
 | Blockchain | 0G Chain Testnet | Contract deployment + iNFT |
 | Blockchain | Ethereum Sepolia | KeeperHub execution chain |
 | Deployment | Vercel (serverless + cron) | Frontend, API routes, agent runtime |
