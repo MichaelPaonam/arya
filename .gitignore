@@ -44,3 +44,7 @@ coverage.json
 
 CLAUDE.md
 docs/plan.md
+
+.claude/
+docs/architecture/
+docs/research/
