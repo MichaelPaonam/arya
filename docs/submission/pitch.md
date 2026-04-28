@@ -91,15 +91,56 @@ The architecture that runs the hackathon demo is the same architecture that scal
 
 ---
 
+## Smart Accounts (ERC-4337) - Bounded Agent Autonomy
+
+The biggest UX problem in agent-based DeFi: users must sign every single transaction. Approve token? Sign. Execute swap? Sign. Set up monitoring? Sign. This is friction that kills adoption and makes demos painful.
+
+ARYA solves this with **ERC-4337 account abstraction**. Over 40 million smart accounts are deployed across Ethereum and L2s, with 100+ million UserOperations executed in 2024 alone (sources: [Ethereum.org](https://ethereum.org/en/roadmap/account-abstraction/), [Alchemy](https://www.alchemy.com/overviews/what-is-account-abstraction)).
+
+### How It Works in ARYA
+
+```
+Traditional: User signs every action → clunky, slow, terrible demo
+Smart Account: User defines bounds once → agents operate freely within them
+```
+
+**Session keys** are the key innovation. The user grants the Executor Agent a time-limited, scope-limited permission:
+
+- "Allow swaps up to $500, only on Uniswap, for 7 days"
+- Agent operates within those boundaries - no further wallet signatures
+- Boundaries enforced by the smart contract, not just the UI
+- User can revoke at any time
+
+### Cost Effectiveness
+
+| Scenario | Without 4337 | With 4337 |
+|----------|-------------|-----------|
+| Approve + swap | 2 transactions, 2 gas payments, 2 signatures | 1 batched UserOperation, 1 gas payment, 0 signatures (session key) |
+| 5 strategies in a day | 10 signatures + 10 gas fees | 1 session key grant + 5 auto-executed UserOps |
+| New user onboarding | Must acquire native tokens for gas first | Paymaster sponsors gas - zero friction |
+| Pay gas in USDC | Not possible with EOA | Paymaster accepts stablecoin payment |
+
+### Why This Matters for Investors
+
+Session keys move human-in-the-loop from **per-transaction** to **per-policy**:
+- Still human-controlled (user sets the bounds)
+- Still on-chain enforced (smart contract validates every UserOperation against session permissions)
+- But dramatically better UX (agents feel autonomous while actually being bounded)
+
+This is the difference between "AI assistant that asks permission for every keystroke" and "AI assistant that operates within your defined guidelines." The latter is what users actually want.
+
+---
+
 ## Ease of Use
 
 1. **Connect wallet** - One click via RainbowKit (MetaMask, WalletConnect, Coinbase Wallet)
-2. **Enter API key** - Paste your Anthropic key in Settings (optional - platform works without it in limited mode)
-3. **Set risk threshold** - Slide to your comfort level (1-10)
-4. **Browse strategies** - AI agents surface opportunities with risk scores, expected returns, and swap routes
-5. **Approve or reject** - One click + wallet signature to execute
+2. **Smart account created automatically** - ERC-4337 account deployed on first login, no user action needed
+3. **Grant session key** - Define spending limits and allowed protocols for the agent (one signature, lasts 7 days)
+4. **Set risk threshold** - Slide to your comfort level (1-10)
+5. **Browse strategies** - AI agents surface opportunities with risk scores, expected returns, and swap routes
+6. **Approve or reject** - For strategies within session bounds, agents execute automatically. Above bounds, one click + wallet signature.
 
-No CLI. No config files. No smart contract interactions. The complexity lives in the agents, not the UI.
+No CLI. No config files. No repeated signing. No native token required (paymaster sponsors gas). The complexity lives in the agents, not the UI.
 
 ---
 
@@ -127,6 +168,59 @@ ARYA is designed around the principle that **AI should augment human decision-ma
 - Risk scores are computed, not hallucinated - based on impermanent loss math, TVL depth, protocol age, and audit history
 - LLM reasoning is used for natural language explanations, not for the scores themselves
 - Users without an API key still get rule-based risk analysis (limited mode)
+
+### MEV Protection
+
+MEV (Maximal Extractable Value) bots have extracted over **$1.43 billion** from Ethereum users through sandwich attacks, front-running, and back-running ([MEV Blocker](https://mevblocker.io/)). Any DeFi platform that executes swaps without MEV awareness is leaving its users exposed.
+
+ARYA mitigates MEV at the agent level today and has a clear path to stronger protection:
+
+**Current mitigations:**
+
+| Protection | How It Works |
+|-----------|-------------|
+| **Slippage control** | Risk Agent calculates tight slippage tolerances based on pool liquidity depth. Sandwich attacks become unprofitable when the allowed slippage window is narrow. MEV Blocker recommends this as a baseline: "you should ALWAYS set slippage control to have multiple protections in place." |
+| **Route optimization** | Uniswap Trading API splits trades across pools to minimize price impact, reducing the profitable MEV surface. |
+| **UniswapX integration path** | UniswapX uses Dutch auctions where fillers compete to give users better prices. Orders filled from filler inventory cannot be sandwiched, and MEV is returned to swappers as improved pricing ([Uniswap Blog](https://blog.uniswap.org/uniswapx-protocol)). |
+| **Transaction preview** | Dashboard shows the exact swap route, expected output, and minimum received before the user approves. No blind transactions. |
+
+**Future: Private transaction submission.**
+
+| Solution | Mechanism | User Benefit |
+|----------|-----------|-------------|
+| **Flashbots Protect** | Routes transactions through a private mempool via Flashbots Auction, bypassing the public mempool ([Flashbots](https://www.flashbots.net/)) | Eliminates front-running and sandwich attacks entirely |
+| **MEV Blocker** | Order Flow Auction where searchers bid for backrunning rights but cannot frontrun or sandwich. 90% of backrun profits rebated to users ([MEV Blocker](https://mevblocker.io/)) | Users earn from their own order flow - **$219B+ protected, 5.5K+ ETH rebated** across 62M+ transactions |
+| **MEV-Share** | Users selectively share transaction data and receive compensation for MEV their orders generate ([Flashbots](https://www.flashbots.net/)) | Turns MEV from a user cost into a user revenue stream |
+
+These integrations are configuration changes in the Executor Agent's transaction submission path - swap to a private RPC endpoint instead of the public mempool. No contract changes required.
+
+### Stablecoin-Aware Volatility Protection
+
+The global stablecoin market cap exceeds **$320 billion** ([DefiLlama](https://defillama.com/stablecoins)), with USDT commanding ~59% dominance. Stablecoins are the backbone of DeFi lending, borrowing, and yield farming - and a critical tool for portfolio risk management ([Chainalysis](https://www.chainalysis.com/blog/stablecoins-most-popular-asset/)).
+
+ARYA's agents treat stablecoins as a **first-class defensive strategy**, not just another token:
+
+**How agents use stablecoins for volatility protection:**
+
+| Strategy | Agent Role | How It Works |
+|----------|-----------|-------------|
+| **Flight to safety** | Risk Agent detects elevated market volatility (price swings, volume spikes, funding rate extremes) and recommends partial conversion to stablecoins | Locks in gains during bull runs, preserves capital during downturns ([Flipster](https://flipster.io/blog/how-traders-can-use-stablecoins-to-manage-volatility-in-crypto-markets)) |
+| **Stablecoin yield farming** | Scout Agent discovers stablecoin-only yield opportunities (Aave/Compound lending, Curve stablecoin pools) as low-risk alternatives | Earns passive yield with near-zero impermanent loss - stablecoins "reduce impermanent loss and maintain the efficiency of DEXs" ([Chainalysis](https://www.chainalysis.com/blog/stablecoins-most-popular-asset/)) |
+| **Stablecoin diversification** | Risk Agent scores depeg risk per stablecoin type and recommends diversification across collateral models | Mitigates single-stablecoin depeg risk - history includes UST collapse (2022), USDC depeg (2023), USDR depeg (2023) ([Binance Academy](https://www.binance.com/en/academy/articles/what-are-stablecoins)) |
+| **Rebalancing triggers** | KeeperHub monitoring detects when volatile asset allocation exceeds user's risk threshold and triggers rebalance toward stablecoins | Automated portfolio defense without manual monitoring |
+
+**Stablecoin types the Risk Agent understands:**
+
+| Type | Examples | Collateral | Depeg Risk Profile |
+|------|---------|-----------|-------------------|
+| Fiat-backed | USDT, USDC, GUSD | 1:1 USD reserves | Low (depends on issuer reserves and regulatory status) |
+| Crypto-backed | DAI | Over-collateralized (200%+ in ETH/other crypto) | Medium (liquidation cascades in severe crashes) |
+| Algorithmic | FRAX | Algorithm-managed supply | Higher (UST collapse demonstrated systemic risk) |
+| Commodity-backed | XAUT, PAXG | Physical gold | Low (but less liquid, redeemable for physical gold) |
+
+Sources: [Gemini Cryptopedia](https://www.gemini.com/cryptopedia/what-are-stablecoins-how-do-they-work), [Chainalysis](https://www.chainalysis.com/blog/stablecoins-most-popular-asset/)
+
+**Why LLM agents matter here:** A rule-based bot can trigger a stablecoin rebalance when price drops 5%. An LLM agent can reason about *why* the market is dropping - a protocol exploit (flee immediately) vs a temporary liquidation cascade (wait it out) vs a macro event (gradual de-risk). Context determines the right response.
 
 ---
 
@@ -180,6 +274,54 @@ ARYA's agent architecture is designed to work with **any LLM provider**, not jus
 ### How It Works
 
 The agent layer abstracts LLM calls behind a unified interface. Swapping providers is a configuration change, not a rewrite. Each agent specifies what it needs (structured JSON analysis, risk reasoning, natural language explanation) and the routing layer selects the best model for the task.
+
+### Yield Tokenization & On-Chain Fixed Income
+
+The next frontier for ARYA is **yield tokenization** - decomposing yield-bearing assets into their principal and forward yield components, then trading the spread.
+
+**The mental model:** Yield tokenization turns time-based returns into tradable assets. A yield-bearing position (e.g., staked ETH earning 4% APY) is split into:
+
+- **PT (Principal Token)** - Redeemable for the underlying asset at maturity. Trades at a discount representing the implied fixed rate.
+- **YT (Yield Token)** - Captures all future yield until maturity. Price reflects the market's bet on what the variable rate will be.
+
+This is the DeFi equivalent of fixed income trading - stripping a bond into principal and coupon components.
+
+**Why this is perfect for LLM agents:**
+
+| Signal | What the Agent Does |
+|--------|-------------------|
+| **Implied vs realized yield spread** | Pendle's YT prices imply a forward yield rate. The Scout Agent compares this to actual on-chain rates from lending protocols. When implied yield is 15% but realized yield is 10%, there's a mispricing the agent surfaces. |
+| **Time-to-expiry decay** | YT value decays toward zero at maturity. The Risk Agent models this decay curve and flags when the risk/reward of holding YT shifts unfavorably. |
+| **Rate direction reasoning** | Rule-based bots can't reason about whether rates will rise or fall. An LLM agent can synthesize governance proposals, protocol upgrades, and macro conditions to form a directional view. |
+| **Cross-protocol arbitrage** | The same underlying yield (e.g., stETH) may be tokenized on Pendle with different implied rates than what Aave or Compound offer. Agents identify these cross-protocol spreads. |
+
+**How it fits ARYA's architecture:**
+
+```
+Scout Agent monitors:
+  - Pendle PT/YT pricing (implied yield)
+  - DefiLlama/Aave/Compound spot rates (realized yield)
+  - Spread = implied - realized
+        |
+        v
+Risk Agent evaluates:
+  - Spread magnitude vs historical norms
+  - Time to maturity (decay risk)
+  - Directional confidence
+  - Liquidity depth of PT/YT markets
+        |
+        v
+Strategy Proposal:
+  "Pendle YT-stETH implies 8.2% APY but Lido is paying 4.1%.
+   The market is pricing in a rate increase that hasn't materialized.
+   Selling YT and locking in PT at 6.5% fixed captures the spread
+   with 47 days to maturity."
+        |
+        v
+User approves or rejects (human-in-the-loop)
+```
+
+This transforms ARYA from a yield farming optimizer into an **on-chain fixed income desk** - a category that barely exists in DeFi today but represents billions in TradFi.
 
 ---
 
