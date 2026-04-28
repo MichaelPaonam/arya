@@ -65,6 +65,7 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 | `YieldSwarmRegistry.sol` | ERC-7857 iNFT registry - each agent has a verifiable on-chain identity |
 | `StrategyVault.sol` | Human-in-the-loop approval gate - agents propose, only the owner can approve fund movements |
 | `AgentReputation.sol` | On-chain performance tracking - agents build verifiable reputation over time |
+| ERC-4337 Smart Accounts | Session keys for bounded agent autonomy, batched transactions, gas sponsorship via paymaster |
 
 ## Sponsor Integrations
 
@@ -83,7 +84,7 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 | Auth | SIWE (Sign-In With Ethereum) |
 | Agent Framework | LangGraph.js (TypeScript) |
 | LLM | Anthropic Claude Haiku 4.5 (BYOK) |
-| Contracts | Solidity, Hardhat |
+| Contracts | Solidity, Hardhat, ERC-4337 |
 | Blockchain | 0G Chain Testnet, Ethereum Sepolia |
 | Storage | 0G Storage SDK |
 | Session/User Data | Upstash Redis |
