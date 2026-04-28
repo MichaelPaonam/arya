@@ -224,6 +224,98 @@ Functions:
 
 ---
 
+## Smart Accounts (ERC-4337)
+
+ARYA uses ERC-4337 account abstraction to enable bounded agent autonomy, batched transactions, and gas sponsorship. This upgrades the human-in-the-loop model from "sign every action" to "define boundaries, agents operate within them."
+
+### Why Smart Accounts Are Required
+
+| Problem | EOA (Traditional) | Smart Account (ERC-4337) |
+|---------|-------------------|--------------------------|
+| User must sign every swap | Yes - every approve + swap = 2 signatures | Session key: user defines bounds once, agent operates freely within them |
+| User needs native tokens for gas | Yes - must hold 0G tokens | Paymaster sponsors gas or user pays in USDC |
+| Multi-step strategies | Multiple transactions, multiple signatures | Batched: approve + swap + monitor setup in one UserOperation |
+| Agent automation | Impossible without private key exposure | Session keys grant time-limited, scope-limited permissions to agents |
+
+### Architecture
+
+```
+User creates Smart Account (one-time setup)
+        |
+        v
+User grants session key to Executor Agent:
+  - Max spend: $500
+  - Allowed protocols: Uniswap only
+  - Duration: 7 days
+  - Allowed actions: swap, approve
+        |
+        v
+Agent creates UserOperations within bounds
+  (no further wallet signatures needed)
+        |
+        v
+Bundler packages UserOps → EntryPoint → execution
+        |
+        v
+Paymaster sponsors gas (demo) or user pays in USDC
+```
+
+### Components
+
+| Component | Role in ARYA |
+|-----------|-------------|
+| **Smart Account Factory** | Creates user smart accounts on first login (CREATE2 deterministic address) |
+| **Session Key Module** | Grants Executor Agent bounded permissions (max spend, allowed protocols, time window) |
+| **StrategyVault.sol** | Still enforces approval gate for strategies above session key limits |
+| **Paymaster** | Sponsors gas for demo users. Premium plan users get gas-free execution. |
+| **Bundler** | Packages agent UserOperations for on-chain submission |
+
+### Human-in-the-Loop with Session Keys
+
+Session keys don't remove human oversight - they move it to the policy level:
+
+| Control Layer | What User Defines | What Agent Does |
+|--------------|-------------------|-----------------|
+| **Session creation** | Max spend per tx, max total spend, allowed protocols, time window | Operates freely within these bounds |
+| **StrategyVault** | Risk threshold (auto-reject above it) | Proposes strategies; only those within threshold proceed |
+| **Dashboard alerts** | Notification preferences | User reviews agent actions retroactively |
+| **Revocation** | Can revoke session key at any time | Immediately loses all permissions |
+
+### Session Key Permissions (example)
+
+```
+{
+  "grantee": "0x...executorAgent",
+  "permissions": {
+    "maxSpendPerTx": "500000000",     // $500 USDC
+    "maxTotalSpend": "2000000000",    // $2000 USDC total
+    "allowedProtocols": ["0x...uniswapRouter"],
+    "allowedActions": ["swap", "approve"],
+    "validUntil": 1715000000,         // 7 days from grant
+    "validAfter": 1714400000
+  }
+}
+```
+
+### Cost Effectiveness
+
+| Scenario | Without 4337 | With 4337 | Savings |
+|----------|-------------|-----------|---------|
+| Approve + swap | 2 transactions, 2 gas payments | 1 batched UserOperation | ~40% gas reduction |
+| 5 strategies in a day | 10 signatures + 10 gas fees | 1 session key grant + 5 UserOps (no signatures) | 50%+ fewer interactions |
+| New user onboarding | Must acquire native tokens first | Paymaster sponsors gas | Zero onboarding friction |
+| Demo for judges | "Sign here... and here... and here..." | One session key, then seamless agent execution | Night-and-day UX difference |
+
+### Implementation (Hackathon)
+
+- Use ZeroDev or Pimlico SDK for smart account infrastructure
+- Smart account factory deployed on 0G Chain testnet
+- Session key module with spending limits and time bounds
+- Simple paymaster for demo gas sponsorship
+- Executor Agent creates UserOperations instead of raw transactions
+
+---
+
 ## Sponsor Integration Details
 
 ### 0G 
@@ -357,3 +449,89 @@ LangGraph.js state persists in 0G Storage between serverless invocations.
 | Automation | KeeperHub REST API | Position monitoring workflows |
 | Yield Data | DefiLlama API | Pool APYs, TVL, protocol data |
 | Price Data | CoinGecko API | Token prices for calculations |
+
+---
+
+## Future Scope: Yield Tokenization
+
+Post-hackathon, ARYA's agent pipeline extends naturally to **yield tokenization** - decomposing yield-bearing assets into principal (PT) and yield (YT) tokens, then trading implied vs realized yield spreads.
+
+### How It Maps to ARYA's Agents
+
+| Agent | Current Role | Extended Role |
+|-------|-------------|---------------|
+| **Scout** | Discovers LP/lending yield opportunities | Also monitors Pendle PT/YT pricing for implied yield spreads against on-chain spot rates |
+| **Risk** | Scores IL, contract risk, correlation | Also evaluates time-to-expiry decay, directional rate confidence, and PT/YT liquidity depth |
+| **Executor** | Builds Uniswap swaps | Also builds Pendle PT/YT trades (same EVM transaction pattern) |
+
+### Why Agents Outperform Rules Here
+
+Implied yield arbitrage requires reasoning about rate direction (governance proposals, protocol upgrades, macro conditions) and cross-protocol spread analysis - exactly the kind of contextual synthesis that LLM agents handle and rule-based bots cannot. See `docs/submission/pitch.md` for the full analysis.
+
+---
+
+## MEV Awareness
+
+MEV bots have extracted over **$1.43 billion** from Ethereum users (source: MEV Blocker). ARYA addresses this at the agent level.
+
+### Current Mitigations
+
+- **Slippage control** - Risk Agent sets tight slippage tolerances based on pool liquidity depth and recent volatility. Sandwich attacks become unprofitable when the allowed slippage window is narrow. MEV Blocker recommends this as a baseline defense.
+- **Route optimization** - Uniswap Trading API routes trades across multiple pools to minimize price impact, reducing the profitable MEV surface.
+- **UniswapX path** - UniswapX uses Dutch auctions where fillers compete to execute swaps. Orders filled from filler inventory cannot be sandwiched, and MEV is returned to swappers as improved pricing (source: Uniswap Blog).
+- **Transaction preview** - Users see the exact swap route, expected output, and minimum received in the dashboard before approving. No blind transactions.
+
+### Future: Private Transaction Submission
+
+| Integration | Mechanism | Impact | Source |
+|------------|-----------|--------|--------|
+| **Flashbots Protect** | Routes transactions through private mempool via Flashbots Auction | Eliminates front-running and sandwich attacks | flashbots.net |
+| **MEV Blocker** | OFA where searchers bid for backrun rights but cannot frontrun/sandwich. 90% of backrun profits rebated to users | $219B+ protected, 5.5K+ ETH rebated across 62M+ transactions | mevblocker.io |
+| **MEV-Share** | Users selectively share tx data and receive compensation for MEV their orders generate | Turns MEV from user cost into user revenue | flashbots.net |
+
+All integrations are a configuration change in the Executor Agent's transaction submission path - submit to a private RPC endpoint instead of the public mempool. No changes to StrategyVault.sol or the approval flow.
+
+---
+
+## Stablecoin-Aware Volatility Protection
+
+Global stablecoin market cap exceeds $320B (source: DefiLlama), with USDT at ~59% dominance. Stablecoins are the backbone of DeFi lending, borrowing, and yield farming (source: Chainalysis). ARYA's agents treat stablecoins as a first-class defensive strategy.
+
+### Agent Responsibilities
+
+| Strategy | Agent | Behavior |
+|----------|-------|----------|
+| **Flight to safety** | Risk Agent | Detects elevated market volatility (price swings, volume spikes, funding rate extremes). Recommends partial or full conversion to stablecoins to lock gains or preserve capital |
+| **Stablecoin yield discovery** | Scout Agent | Discovers stablecoin-only yield opportunities (Aave/Compound lending, Curve stablecoin pools) as low-risk alternatives to volatile LP positions |
+| **Depeg risk scoring** | Risk Agent | Scores each stablecoin by collateral model, issuer risk, and historical stability. Recommends diversification across stablecoin types to avoid single-point depeg exposure |
+| **Automated rebalancing** | KeeperHub | Monitors volatile asset allocation. Triggers rebalance toward stablecoins when allocation exceeds user's risk threshold |
+
+### Stablecoin Risk Profiles
+
+| Type | Examples | Collateral | Depeg Risk | Agent Handling |
+|------|---------|-----------|-----------|----------------|
+| Fiat-backed | USDT, USDC, GUSD | 1:1 USD reserves | Low | Default safe haven. Risk Agent monitors issuer reserve reports |
+| Crypto-backed | DAI | Over-collateralized (200%+ in ETH) | Medium | Risk Agent monitors collateral ratio. Flags liquidation cascade risk in severe crashes |
+| Algorithmic | FRAX | Algorithm-managed supply | Higher | Risk Agent applies extra caution. UST collapse (2022) demonstrated systemic failure mode |
+| Commodity-backed | XAUT, PAXG | Physical gold | Low (less liquid) | Treated as inflation hedge, not primary stablecoin position |
+
+Sources: Gemini Cryptopedia (stablecoin types), Chainalysis (market data), Binance Academy (depeg history: UST 2022, USDC 2023, USDR 2023), Flipster (volatility strategies)
+
+### Volatility Detection Signals
+
+The Risk Agent monitors these signals to trigger stablecoin rebalancing:
+
+- Price volatility (rolling standard deviation exceeds threshold)
+- Abnormal volume spikes (potential liquidation cascades)
+- Funding rate extremes (overleveraged market)
+- Protocol-specific events (exploit alerts, governance changes)
+- Stablecoin depeg deviations (>0.5% from peg triggers warning)
+
+### Why LLM Agents vs Rules
+
+A rule-based bot triggers stablecoin rebalance when price drops X%. An LLM agent reasons about *why* the drop is happening:
+- Protocol exploit → flee to stablecoins immediately
+- Temporary liquidation cascade → wait it out, volatility is short-lived
+- Macro event (regulatory, rate hike) → gradual de-risk over hours, not minutes
+
+Context determines the right response. This is where LLM reasoning justifies its cost.
