@@ -84,7 +84,7 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 | Auth | SIWE (Sign-In With Ethereum) |
 | Agent Framework | LangGraph.js (TypeScript) |
 | LLM | Anthropic Claude Haiku 4.5 (BYOK) |
-| Contracts | Solidity, Hardhat, ERC-4337 |
+| Contracts | Solidity, Foundry, ERC-4337 |
 | Blockchain | 0G Chain Testnet, Ethereum Sepolia |
 | Storage | 0G Storage SDK |
 | Session/User Data | Upstash Redis |
@@ -120,7 +120,7 @@ cp .env.example .env
 
 # Run smart contract tests
 cd packages/contracts
-npx hardhat test
+forge test
 
 # Start the dashboard (local dev)
 cd packages/frontend
