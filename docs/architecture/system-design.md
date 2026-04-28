@@ -91,7 +91,10 @@ Scout discovers opportunity
 Risk evaluates & scores
         │
         ▼
-Orchestrator packages as StrategyProposal
+Agent Debate: Risk challenges Scout's assumptions (adversarial validation)
+        │
+        ▼
+Orchestrator scores surviving strategies, packages as StrategyProposal
         │
         ▼
 Dashboard presents to user
@@ -103,11 +106,159 @@ User approves / rejects
 Executor builds tx + creates KeeperHub workflow
         │
         ▼
-On-chain execution via Uniswap API
+On-chain execution via Uniswap API (UserOperation via ERC-4337)
         │
         ▼
 KeeperHub monitors position health
 ```
+
+### Agent Debate Protocol (Latency-Aware)
+
+Multiple agents proposing and critiquing strategies produces better decisions than single-agent inference. Research demonstrates this "significantly enhances mathematical and strategic reasoning" and "reduces fallacious answers and hallucinations" (Du et al., 2023).
+
+However, full debate adds latency (2-4 LLM calls per strategy × ~1-2s each). For 20 opportunities, that's 80-160 seconds — unacceptable for time-sensitive opportunities. ARYA uses **tiered debate** to balance quality with speed.
+
+#### Debate Tiers
+
+| Tier | Latency Target | Debate Level | When Used |
+|------|---------------|-------------|-----------|
+| **Tier 1: Fast Path** | <2s | No debate. Rule-based scoring only. | Arbitrage, time-critical opportunities expiring in minutes. Known stablecoin pools. |
+| **Tier 2: Standard Path** | 5-15s | Single-round challenge. Risk raises top concerns, no back-and-forth. | Most yield farming strategies. Medium risk, medium size. |
+| **Tier 3: Deep Path** | 30-60s | Full multi-round debate. Adversarial challenge + response + scoring. | High-value strategies (>$1000), novel protocols, high risk scores, user-configured "always debate". |
+
+#### Tier Routing Logic
+
+```typescript
+function selectDebateTier(strategy: StrategyProposal): DebateTier {
+  // Tier 1: Fast path
+  if (strategy.opportunity.source === "arbitrage") return "fast";
+  if (strategy.estimatedReturn < 0.01) return "fast";
+  if (strategy.expiresAt - Date.now() < 300_000) return "fast"; // expires in <5 min
+
+  // Tier 3: Deep path
+  if (strategy.actions[0].amount > DEBATE_THRESHOLD) return "deep";
+  if (strategy.risk.riskScore >= 7) return "deep";
+  if (strategy.opportunity.protocol === "unknown") return "deep";
+  if (userPolicy.automation.debateRequired) return "deep";
+
+  // Tier 2: Standard path (default)
+  return "standard";
+}
+```
+
+#### Latency Control Techniques
+
+| Technique | How It Works | Applicable Tiers |
+|-----------|-------------|-----------------|
+| **Time-boxed debate** | Hard timeout: if debate unresolved in X seconds, use current best score | Tier 2, 3 |
+| **Parallel debate** | Challenge multiple strategies simultaneously, don't wait sequentially | Tier 2, 3 |
+| **Early exit** | If Risk Agent's first challenge is "low" severity and data-backed, skip further rounds | Tier 2 |
+| **Cached challenges** | Common challenges ("low TVL", "new protocol") are pre-computed, not LLM-generated | All tiers |
+| **Challenge templates** | For known risk patterns (IL > X%, TVL < $1M), use template instead of LLM call | Tier 1, 2 |
+| **Debate reuse** | If same pool was debated <1 hour ago and conditions unchanged, reuse outcome | All tiers |
+
+#### Flow Diagram
+
+```
+Strategy enters pipeline
+        │
+        ▼
+Tier Classification (rule-based, <10ms)
+        │
+        ├── Tier 1: Fast Path
+        │     └── Rule-based risk score → Dashboard (no LLM)
+        │
+        ├── Tier 2: Standard Path
+        │     ├── Risk generates challenges (1 LLM call, parallel across strategies)
+        │     ├── Timeout: 10s hard cap
+        │     └── Score + present to Dashboard
+        │
+        └── Tier 3: Deep Path
+              ├── Risk challenges (1 LLM call)
+              ├── Scout responds (1 LLM call)
+              ├── Orchestrator scores (1 LLM call or rule-based)
+              ├── Timeout: 45s hard cap
+              └── Score + present to Dashboard
+```
+
+#### Debate Message Types
+
+```typescript
+interface Challenge {
+  challengerId: string;       // Risk agent's iNFT ID
+  targetStrategyId: string;
+  challengeType: "data_contradiction" | "risk_underestimate" | "assumption_invalid" | "correlation_risk";
+  evidence: string;           // LLM-generated reasoning with data backing
+  severity: "low" | "medium" | "high";
+}
+
+interface ChallengeResponse {
+  responderId: string;        // Scout agent's iNFT ID
+  challengeId: string;
+  response: "concede" | "counter";
+  counterEvidence?: string;
+}
+
+interface DebateOutcome {
+  strategyId: string;
+  tier: "fast" | "standard" | "deep";
+  challengesRaised: number;
+  challengesSurvived: number;
+  confidenceScore: number;    // 0-1, weighted by challenge severity
+  latencyMs: number;          // Actual time taken
+  debateLog: (Challenge | ChallengeResponse)[];
+}
+```
+
+**Hackathon scope:** Tier classification logic in Orchestrator. Tier 1 (rule-based scoring) and Tier 2 (single-round Risk challenge) implemented. Tier 3 full debate is stretch goal.
+
+### Intent Layer
+
+Users express desired outcomes (intents) rather than approving specific transactions. Agents compete to fulfill intents within constraints.
+
+**Intent expression:**
+
+```typescript
+interface UserIntent {
+  id: string;
+  walletAddress: string;
+  type: "maximize_yield" | "minimize_risk" | "rebalance" | "exit_to_stablecoin";
+  constraints: {
+    maxRisk?: number;             // 1-10 scale
+    minAPY?: number;              // minimum acceptable yield
+    maxCapitalDeployed?: bigint;  // spending limit
+    allowedProtocols?: string[];  // protocol whitelist
+    timeHorizon?: number;         // days
+    preferStablecoins?: boolean;  // volatility preference
+  };
+  createdAt: number;
+  expiresAt: number;
+}
+```
+
+**How agents fulfill intents:**
+
+```
+User declares: "Deploy $5000 into yield, risk < 4, min 7% APY, 30-day horizon"
+        │
+        ▼
+Scout generates multiple strategy proposals matching constraints
+        │
+        ▼
+Risk Agent scores each against intent constraints
+        │
+        ▼
+Debate: adversarial challenge on top candidates
+        │
+        ▼
+Orchestrator ranks: best risk-adjusted return within bounds
+        │
+        ▼
+If within session key bounds → auto-execute
+If above bounds → present to user for approval
+```
+
+**Hackathon scope:** User preferences (risk threshold, preferred protocols, target APY) in Settings are treated as a persistent intent. Agents filter and rank strategies against these constraints. Full intent expression with competing solvers is post-hackathon.
 
 ### Agent Specifications
 
@@ -305,6 +456,55 @@ Session keys don't remove human oversight - they move it to the policy level:
 | 5 strategies in a day | 10 signatures + 10 gas fees | 1 session key grant + 5 UserOps (no signatures) | 50%+ fewer interactions |
 | New user onboarding | Must acquire native tokens first | Paymaster sponsors gas | Zero onboarding friction |
 | Demo for judges | "Sign here... and here... and here..." | One session key, then seamless agent execution | Night-and-day UX difference |
+
+### Fine-Grained Wallet Policy
+
+Session keys cover spending limits, but ARYA extends this with strategy-level policy enforcement at the wallet level:
+
+```typescript
+interface WalletPolicy {
+  sessionKeyId: string;
+  spending: {
+    maxPerTx: bigint;
+    maxTotal: bigint;
+    maxPerDay: bigint;
+  };
+  protocols: {
+    allowlist: string[];       // Only these protocols
+    blocklist: string[];       // Never these protocols
+  };
+  assets: {
+    allowedTokens: string[];   // Token address whitelist
+    blockedTokens: string[];
+    stablecoinOnly: boolean;
+    noAlgorithmicStables: boolean;
+  };
+  risk: {
+    maxRiskScore: number;      // 1-10, reject above this
+    maxConcentration: number;  // Max % in single pool (0-100)
+    maxILTolerance: number;    // Max acceptable IL percentage
+  };
+  automation: {
+    volatilityPause: number;   // Pause if portfolio drops X% in 24h
+    debateRequired: boolean;   // Require debate for all strategies
+    debateThreshold: bigint;   // Require debate only above this amount
+  };
+}
+```
+
+**Enforcement:** The smart account validates every UserOperation against the active WalletPolicy before execution. Policy is stored in smart account storage (on-chain, immutable until user updates via dashboard).
+
+| Policy Type | Enforcement Point | Example |
+|-------------|-------------------|---------|
+| Spending caps | Session key module (on-chain) | Max $500/tx, $2000/day |
+| Protocol allowlist | Session key module (on-chain) | Uniswap router only |
+| Asset restrictions | Executor Agent (pre-submission) | No algorithmic stablecoins |
+| Risk threshold | Orchestrator (pipeline) | Drop strategies with riskScore > 7 |
+| Concentration limits | Orchestrator (pipeline) | Max 30% in single pool |
+| Volatility triggers | KeeperHub workflow | Pause automation if portfolio -10% in 24h |
+| Debate requirement | Orchestrator (pipeline) | Force Tier 3 debate for strategies > $1000 |
+
+**Hackathon scope:** Spending caps + protocol allowlist + risk threshold enforced on-chain via session key module and StrategyVault. Asset restrictions and concentration limits enforced in Orchestrator logic. Full volatility triggers via KeeperHub post-hackathon.
 
 ### Implementation (Hackathon)
 
@@ -535,3 +735,211 @@ A rule-based bot triggers stablecoin rebalance when price drops X%. An LLM agent
 - Macro event (regulatory, rate hike) → gradual de-risk over hours, not minutes
 
 Context determines the right response. This is where LLM reasoning justifies its cost.
+
+---
+
+## Agent Export to External Marketplaces (Future)
+
+ARYA is a closed system — all agents are internal. Users **train** their agents through approval/rejection decisions, building a verifiable on-chain track record. Once agents hit performance milestones, the **user** (not ARYA) lists them on existing Web3 agent marketplaces. ARYA takes 10-20% as infrastructure fee.
+
+### Ownership Model
+
+- User's wallet = agent operator on-chain
+- AgentReputation.sol data tied to user's wallet address
+- ERC-7857 iNFT credentials are portable — user takes them to any marketplace
+- ARYA provides: base model, compute, tooling, strategy pipeline
+- ARYA earns: 10-20% of external marketplace revenue as infrastructure fee
+
+### How It Works
+
+```
+User interacts with ARYA (approve/reject strategies)
+        │
+        ▼
+Agent preferences shaped by user's decisions
+AgentReputation.sol tracks on-chain performance
+        │
+        ▼
+Agent hits milestone (Gold tier: >70% win rate, 30+ days)
+        │
+        ▼
+User lists agent on external marketplace
+(Autonolas, AI Arena, Morpheus, etc.)
+        │
+        ▼
+External users subscribe to agent's strategies
+Revenue: User 70-80% / ARYA 10-20% / Platform 10%
+```
+
+### Target Platforms
+
+| Platform | How ARYA Agents Fit | Revenue Model |
+|----------|-------------------|---------------|
+| **Autonolas (OLAS)** | Register as autonomous services on Autonolas registry | OLAS rewards + user subscriptions |
+| **AI Arena** | Competitive ranking for strategy agents | Tournament prizes + delegated capital |
+| **Morpheus (MOR)** | Contribute to decentralized AI marketplace | MOR token rewards per usage |
+| **Other registries** | Any platform accepting ERC-7857 iNFT-verified agents | Platform-specific fees |
+
+### Milestone-Based Export Criteria
+
+| Tier | Requirement | Badge | Export Status |
+|------|------------|-------|--------------|
+| **Bronze** | Win rate >50% over 20 strategies | Bronze badge | Not eligible |
+| **Silver** | Win rate >60% over 50 strategies | Silver badge | Eligible for listing |
+| **Gold** | Win rate >70% for 30+ consecutive days | Gold badge | Premium listing |
+| **Platinum** | Sharpe ratio >1.5 over 90 days, >$10K cumulative profit | Platinum badge | Template licensing |
+
+### Gamification UI (Hackathon Scope)
+
+The dashboard shows a functional milestone tracker fed by real AgentReputation.sol data:
+
+- Win rate tracker with progress toward next tier
+- Milestone progress bar (strategies completed, cumulative profit, streak)
+- Tier badge display
+- Leaderboard (anonymous ranking by risk-adjusted performance)
+
+### Portable Credentials
+
+`AgentReputation.sol` provides on-chain proof of performance. The ERC-7857 iNFT contains the agent's identity and encrypted model config. External platforms verify the track record by reading `AgentReputation.sol` directly — trustless, no API needed.
+
+**Extension for export readiness** (post-hackathon):
+- Cumulative profit generated (sum of actualAPY × capital)
+- Win/loss ratio
+- Sharpe ratio equivalent (risk-adjusted returns)
+- Streak tracking (consecutive wins/losses)
+
+### Provenance Verification: How Marketplaces Know It's ARYA-Trained
+
+External marketplaces need to verify three things: (1) the agent was trained on ARYA, (2) the performance data is genuine, (3) the model weights match what was trained.
+
+**Chain of trust:**
+
+```
+1. Contract Origin
+   iNFT minted by YieldSwarmRegistry.sol (verified contract at known address on 0G Chain)
+   → Marketplace checks: tokenId was minted by ARYA's registry, not self-minted
+   → On-chain, immutable — cannot be faked
+
+2. Performance Data Integrity
+   AgentReputation.sol (permissioned writes — only ARYA's Orchestrator can record outcomes)
+   → Marketplace reads: predictedAPY, actualAPY, win rate, cumulative profit
+   → Data can only be written by ARYA's infrastructure, not by the user
+
+3. Model Verification (ERC-7857 TEE/ZKP)
+   iNFT encrypted metadata contains model config + strategy weights
+   → TEE attestation proves the weights were produced by ARYA's training pipeline
+   → ZKP alternative: prove "this model was trained on data from this AgentReputation history"
+     without revealing the actual weights
+```
+
+**What each layer prevents:**
+
+| Attack | Prevention |
+|--------|-----------|
+| User mints fake iNFT claiming ARYA provenance | Contract address verification — only tokens from ARYA's YieldSwarmRegistry are valid |
+| User inflates reputation data | AgentReputation.sol has permissioned writes — only ARYA's Orchestrator (verified caller) can record outcomes |
+| User claims different model weights than what was trained | ERC-7857 TEE/ZKP verification — encrypted metadata attestation proves model provenance |
+| User copies another user's agent credentials | iNFT is non-transferable (soulbound to user's wallet) or transfer requires ARYA co-signature |
+
+**Marketplace integration flow:**
+
+```
+Marketplace receives listing request from user wallet
+        │
+        ▼
+Reads YieldSwarmRegistry.sol: "Was this iNFT minted by ARYA's contract?" → Yes/No
+        │
+        ▼
+Reads AgentReputation.sol: "What's the verified track record?" → win rate, profit, Sharpe
+        │
+        ▼
+Verifies ERC-7857 metadata: "Does TEE/ZKP attestation confirm ARYA training?" → Valid/Invalid
+        │
+        ▼
+If all pass → Agent listed with "ARYA-Verified" badge
+External subscribers trust the listing because all verification is on-chain
+```
+
+### Anti-Bypass Protection: Preventing Fee Evasion
+
+**The threat:** A user trains on ARYA, learns winning strategies, then recreates the agent outside ARYA's ecosystem — listing it on marketplaces without the iNFT and paying no infrastructure fee.
+
+**Why this is hard to pull off:**
+
+| Defense Layer | How It Works |
+|--------------|-------------|
+| **Reputation is non-portable** | A copycat agent starts with zero track record. The ARYA-Verified badge and on-chain performance history can't be reproduced. Building credibility from scratch on external marketplaces takes months — the user loses their competitive advantage. |
+| **On-chain royalty enforcement** | ARYA's infrastructure fee is encoded in the iNFT smart contract (similar to ERC-2981 royalties). Compliant marketplaces route the fee automatically. The user can't modify the iNFT contract after minting. |
+| **Continuous training dependency** | A snapshot of agent weights degrades as DeFi conditions change. ARYA's live pipeline (real-time market data, debate protocol, risk scoring updates) keeps the agent current. An exported copy without ARYA's infrastructure becomes stale within weeks. |
+| **ARYA co-signature on export** | The iNFT transfer/listing function requires ARYA's co-signature. ARYA only co-signs for agents whose fee terms are intact. If a user tries to list through a side channel, the iNFT lacks the co-signature and marketplaces reject it. |
+| **Soulbound option** | For maximum protection, iNFTs can be soulbound (non-transferable). The user can grant marketplace listing rights through ARYA's export flow (which enforces the fee), but cannot transfer the token directly. |
+
+**What if the user bypasses everything and manually replicates?**
+
+They can replicate strategy logic, but they cannot replicate:
+- The verified track record (on-chain, permissioned writes)
+- The ARYA-Verified brand signal (which marketplaces and subscribers trust)
+- The continuous model updates from ARYA's pipeline
+- The debate-validated strategy confidence scores
+
+The copycat competes against ARYA-Verified agents with proven, verifiable histories. The market will price the unverified agent at a steep discount — likely not worth the effort compared to just paying the 10-20% fee.
+
+### Prodigy Learning: Anonymized Strategy Intelligence (Opt-In)
+
+Some users are yield farming experts who discover novel strategies — new pool combinations, timing patterns, risk hedges that ARYA's base model hasn't seen. ARYA should learn from these users to improve the platform for everyone.
+
+**Activation threshold:** Prodigy learning activates only after ARYA reaches **1,000+ active users**. Below that, the sample size is too small to reliably identify outlier performance vs luck, and anonymization is weaker with fewer data points. Until then, `AgentReputation.sol` collects the data — the system is ready to activate when the threshold is crossed.
+
+**How it works:**
+
+```
+Prodigy user discovers novel strategy → high win rate, unusual pattern
+        │
+        ▼
+System detects anomalous performance:
+  - Win rate significantly above median
+  - Strategy patterns not seen in base model training data
+  - Risk-adjusted returns in top 5% of all users
+        │
+        ▼
+User prompted: "Your strategies are outperforming 95% of ARYA users.
+  Opt in to contribute anonymized patterns to improve ARYA's base model?"
+        │
+        ▼
+If opted in:
+  - Strategy patterns anonymized (no wallet address, no position sizes, no timing)
+  - Only structural patterns extracted: pool type combinations, risk factor weightings,
+    entry/exit condition logic, sector rotation signals
+  - Patterns aggregated into ARYA's base model training set
+  - Base model improves → all users benefit from better default strategies
+        │
+        ▼
+Prodigy receives rewards:
+  - Reduced graduation fee (5% instead of 10-20%)
+  - Accelerated tier progression (2x milestone credit)
+  - "Strategy Contributor" on-chain badge (recorded in iNFT metadata)
+  - Revenue share: X% of platform revenue attributable to patterns they contributed
+```
+
+**Privacy guarantees:**
+
+| What Is Shared | What Is Never Shared |
+|---------------|---------------------|
+| Structural strategy patterns (pool type pairs, risk weightings) | Wallet address |
+| Entry/exit condition logic (anonymized) | Position sizes or capital amounts |
+| Sector rotation signals | Transaction hashes or timing |
+| Risk factor combinations that outperform | Any data that could identify the user |
+
+**Why prodigies opt in:**
+
+- Direct financial reward (lower fees, revenue share)
+- On-chain recognition (Strategy Contributor badge has marketplace value)
+- Faster graduation (2x milestone credit compounds quickly)
+- Altruistic: their patterns help newcomers succeed
+
+**Why ARYA benefits:**
+
+- Base model improves without hiring strategy researchers
+- Platform-wide win rates increase → more agents graduate → more infrastructure fee revenue
+- Prodigy-contributed patterns become a competitive moat (other platforms don't have this data)
+- Creates a virtuous cycle: better base model → attracts more prodigies → even better model
