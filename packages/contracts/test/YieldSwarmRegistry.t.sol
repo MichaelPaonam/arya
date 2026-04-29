@@ -22,49 +22,71 @@ contract YieldSwarmRegistryTest is Test {
 
     function test_RegisterAgent_ValidScout_MintsAndEmits() public {
         vm.expectEmit(true, false, true, true);
-        emit YieldSwarmRegistry.AgentRegistered(1, "scout", owner);
+        emit YieldSwarmRegistry.AgentRegistered(1, "scout", alice);
 
-        uint256 tokenId = registry.registerAgent("scout", "ipfs://metadata1");
+        uint256 tokenId = registry.registerAgent("scout", "ipfs://metadata1", alice);
 
         assertEq(tokenId, 1);
         assertEq(registry.ownerOf(tokenId), owner);
     }
 
-    function test_RegisterAgent_AllTypes_Succeeds() public {
+    function test_RegisterAgent_AllTypesForUser_Succeeds() public {
         string[4] memory types = ["scout", "risk", "executor", "orchestrator"];
         for (uint256 i = 0; i < types.length; i++) {
-            uint256 tokenId = registry.registerAgent(types[i], "ipfs://meta");
+            uint256 tokenId = registry.registerAgent(types[i], "ipfs://meta", alice);
             assertEq(tokenId, i + 1);
         }
     }
 
     function test_RegisterAgent_InvalidType_Reverts() public {
         vm.expectRevert(YieldSwarmRegistry.InvalidAgentType.selector);
-        registry.registerAgent("invalid", "ipfs://meta");
+        registry.registerAgent("invalid", "ipfs://meta", alice);
     }
 
     function test_RegisterAgent_NotOwner_Reverts() public {
         vm.prank(alice);
         vm.expectRevert();
-        registry.registerAgent("scout", "ipfs://meta");
+        registry.registerAgent("scout", "ipfs://meta", alice);
     }
 
     function test_RegisterAgent_EmptyMetadataURI_Succeeds() public {
-        uint256 tokenId = registry.registerAgent("scout", "");
+        uint256 tokenId = registry.registerAgent("scout", "", alice);
         assertEq(tokenId, 1);
+    }
+
+    function test_RegisterAgent_MultipleUsersHaveSeparateSwarms() public {
+        registry.registerAgent("scout", "ipfs://1", alice);
+        registry.registerAgent("risk", "ipfs://2", alice);
+        registry.registerAgent("scout", "ipfs://3", bob);
+
+        YieldSwarmRegistry.AgentInfo[] memory aliceSwarm = registry.getSwarmMembers(alice);
+        YieldSwarmRegistry.AgentInfo[] memory bobSwarm = registry.getSwarmMembers(bob);
+
+        assertEq(aliceSwarm.length, 2);
+        assertEq(bobSwarm.length, 1);
+        assertEq(aliceSwarm[0].agentType, "scout");
+        assertEq(aliceSwarm[1].agentType, "risk");
+        assertEq(bobSwarm[0].agentType, "scout");
+    }
+
+    function test_RegisterAgent_UserFieldStoredCorrectly() public {
+        uint256 tokenId = registry.registerAgent("executor", "ipfs://exec", alice);
+
+        YieldSwarmRegistry.AgentInfo memory info = registry.getAgent(tokenId);
+        assertEq(info.user, alice);
     }
 
     // ============ getAgent ============
 
     function test_GetAgent_Registered_ReturnsInfo() public {
-        uint256 tokenId = registry.registerAgent("risk", "ipfs://risk-meta");
+        uint256 tokenId = registry.registerAgent("risk", "ipfs://risk-meta", alice);
 
         YieldSwarmRegistry.AgentInfo memory info = registry.getAgent(tokenId);
 
         assertEq(info.tokenId, tokenId);
         assertEq(info.agentType, "risk");
         assertEq(info.metadataURI, "ipfs://risk-meta");
-        assertEq(info.owner, owner);
+        assertEq(info.user, alice);
         assertGt(info.registeredAt, 0);
     }
 
@@ -73,14 +95,15 @@ contract YieldSwarmRegistryTest is Test {
         registry.getAgent(999);
     }
 
-    // ============ getSwarmMembers ============
+    // ============ getSwarmMembers (per-user) ============
 
-    function test_GetSwarmMembers_MultipleAgents_ReturnsAll() public {
-        registry.registerAgent("scout", "ipfs://1");
-        registry.registerAgent("risk", "ipfs://2");
-        registry.registerAgent("executor", "ipfs://3");
+    function test_GetSwarmMembers_UserWithAgents_ReturnsOnlyTheirs() public {
+        registry.registerAgent("scout", "ipfs://1", alice);
+        registry.registerAgent("risk", "ipfs://2", alice);
+        registry.registerAgent("executor", "ipfs://3", alice);
+        registry.registerAgent("scout", "ipfs://4", bob);
 
-        YieldSwarmRegistry.AgentInfo[] memory members = registry.getSwarmMembers();
+        YieldSwarmRegistry.AgentInfo[] memory members = registry.getSwarmMembers(alice);
 
         assertEq(members.length, 3);
         assertEq(members[0].agentType, "scout");
@@ -88,15 +111,20 @@ contract YieldSwarmRegistryTest is Test {
         assertEq(members[2].agentType, "executor");
     }
 
-    function test_GetSwarmMembers_Empty_ReturnsEmptyArray() public view {
-        YieldSwarmRegistry.AgentInfo[] memory members = registry.getSwarmMembers();
+    function test_GetSwarmMembers_NoAgents_ReturnsEmptyArray() public view {
+        YieldSwarmRegistry.AgentInfo[] memory members = registry.getSwarmMembers(alice);
+        assertEq(members.length, 0);
+    }
+
+    function test_GetSwarmMembers_ZeroAddress_ReturnsEmpty() public view {
+        YieldSwarmRegistry.AgentInfo[] memory members = registry.getSwarmMembers(address(0));
         assertEq(members.length, 0);
     }
 
     // ============ recordDecision ============
 
     function test_RecordDecision_ValidAgent_EmitsEvent() public {
-        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta");
+        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta", alice);
         bytes32 strategyHash = keccak256("strategy-1");
 
         vm.expectEmit(true, false, false, true);
@@ -111,7 +139,7 @@ contract YieldSwarmRegistryTest is Test {
     }
 
     function test_RecordDecision_NotOwner_Reverts() public {
-        registry.registerAgent("scout", "ipfs://meta");
+        registry.registerAgent("scout", "ipfs://meta", alice);
         vm.prank(alice);
         vm.expectRevert();
         registry.recordDecision(1, keccak256("x"), "rec");
@@ -120,7 +148,7 @@ contract YieldSwarmRegistryTest is Test {
     // ============ intelligentDatasOf (ERC-7857 Metadata) ============
 
     function test_IntelligentDatasOf_RegisteredAgent_ReturnsData() public {
-        uint256 tokenId = registry.registerAgent("scout", "ipfs://scout-meta");
+        uint256 tokenId = registry.registerAgent("scout", "ipfs://scout-meta", alice);
 
         IntelligentData[] memory data = registry.intelligentDatasOf(tokenId);
 
@@ -137,7 +165,7 @@ contract YieldSwarmRegistryTest is Test {
     // ============ delegateAccess ============
 
     function test_DelegateAccess_Owner_Succeeds() public {
-        registry.registerAgent("scout", "ipfs://meta");
+        registry.registerAgent("scout", "ipfs://meta", alice);
 
         registry.delegateAccess(alice);
 
@@ -145,7 +173,7 @@ contract YieldSwarmRegistryTest is Test {
     }
 
     function test_DelegateAccess_ZeroAddress_Reverts() public {
-        registry.registerAgent("scout", "ipfs://meta");
+        registry.registerAgent("scout", "ipfs://meta", alice);
         vm.expectRevert();
         registry.delegateAccess(address(0));
     }
@@ -153,7 +181,7 @@ contract YieldSwarmRegistryTest is Test {
     // ============ authorizeUsage (ERC-7857 Authorize) ============
 
     function test_AuthorizeUsage_Owner_GrantsAccess() public {
-        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta");
+        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta", alice);
 
         registry.authorizeUsage(tokenId, alice);
 
@@ -163,7 +191,7 @@ contract YieldSwarmRegistryTest is Test {
     }
 
     function test_AuthorizeUsage_MultipleUsers_AllGranted() public {
-        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta");
+        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta", alice);
 
         registry.authorizeUsage(tokenId, alice);
         registry.authorizeUsage(tokenId, bob);
@@ -173,15 +201,15 @@ contract YieldSwarmRegistryTest is Test {
     }
 
     function test_AuthorizeUsage_DuplicateUser_Reverts() public {
-        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta");
+        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta", alice);
         registry.authorizeUsage(tokenId, alice);
 
         vm.expectRevert();
         registry.authorizeUsage(tokenId, alice);
     }
 
-    function test_AuthorizeUsage_NotTokenOwner_Reverts() public {
-        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta");
+    function test_AuthorizeUsage_NotContractOwner_Reverts() public {
+        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta", alice);
 
         vm.prank(alice);
         vm.expectRevert(YieldSwarmRegistry.NotAgentOwner.selector);
@@ -191,7 +219,7 @@ contract YieldSwarmRegistryTest is Test {
     // ============ revokeAuthorization ============
 
     function test_RevokeAuthorization_AuthorizedUser_Succeeds() public {
-        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta");
+        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta", alice);
         registry.authorizeUsage(tokenId, alice);
 
         registry.revokeAuthorization(tokenId, alice);
@@ -201,14 +229,14 @@ contract YieldSwarmRegistryTest is Test {
     }
 
     function test_RevokeAuthorization_NotAuthorized_Reverts() public {
-        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta");
+        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta", alice);
 
         vm.expectRevert();
         registry.revokeAuthorization(tokenId, alice);
     }
 
-    function test_RevokeAuthorization_NotTokenOwner_Reverts() public {
-        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta");
+    function test_RevokeAuthorization_NotContractOwner_Reverts() public {
+        uint256 tokenId = registry.registerAgent("scout", "ipfs://meta", alice);
         registry.authorizeUsage(tokenId, alice);
 
         vm.prank(bob);
