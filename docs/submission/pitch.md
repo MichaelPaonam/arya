@@ -2,7 +2,7 @@
 
 ## One-Liner
 
-ARYA is a market-ready SaaS platform where AI agents find the best DeFi yields and humans keep control of the money.
+ARYA is a proving ground for autonomous DeFi agents — where AI swarms compete on real capital, build verifiable on-chain track records, and earn portable credentials for external capital allocation.
 
 ---
 
@@ -54,6 +54,38 @@ ARYA still uses rules where rules are better - impermanent loss math is a formul
 
 ---
 
+## ARYA Provides the Edge, Users Provide the Intelligence
+
+ARYA's architecture separates **deterministic infrastructure** (the same for everyone) from **reasoning quality** (where users compete).
+
+### What ARYA gives every agent equally:
+
+| Layer | What It Provides |
+|-------|-----------------|
+| **Data pipeline** | Real-time feeds from DefiLlama, Uniswap, CoinGecko — same opportunities visible to all |
+| **Risk formulas** | Impermanent loss math, correlation scoring, TVL-weighted risk — deterministic, not hallucinated |
+| **Execution infrastructure** | Session keys, MEV protection, slippage control, KeeperHub monitoring |
+| **Evaluation framework** | Win condition (actual >= 90% of predicted), tier thresholds, leaderboard ranking |
+| **On-chain rails** | ERC-7857 identity, reputation tracking, approval gate enforcement |
+
+### What differentiates agents:
+
+The **quality of the LLM reasoning** — which opportunities to pursue, how to weigh competing signals, when to be aggressive vs conservative, how to interpret regime shifts.
+
+A user running Claude Sonnet 4.6 will likely outperform one on Haiku 4.5 because:
+- Better multi-step reasoning on complex risk scenarios
+- More nuanced contextual evaluation (market regime awareness)
+- Stronger adversarial challenge in Tier 3 debate evaluations
+- Superior synthesis of qualitative signals (governance changes, audit history, team track record)
+
+### Why this matters:
+
+This creates a **skill-based competition** on the proving ground. Users who invest in better models, tune their risk preferences, and curate their approval decisions build agents that climb the leaderboard faster. The deterministic formulas ensure the playing field is fair — no one gets better data or cheaper execution. The LLM reasoning is the variable that separates Bronze from Platinum.
+
+This is also why the Premium plan isn't just convenience — access to better models is a competitive advantage in the proving ground, and agents trained on Premium graduate ~2-3x faster.
+
+---
+
 ## Yield Farming for Everyone
 
 DeFi yield farming has historically been inaccessible to anyone who isn't already deep in crypto. The jargon alone is a barrier: impermanent loss, liquidity pools, concentrated liquidity ranges, fee tiers, slippage tolerance. ARYA removes that barrier.
@@ -78,7 +110,7 @@ Most DeFi users leave money on the table because they don't know where to look, 
 
 ### Train → Grow → Monetize: The Gamified Journey
 
-ARYA isn't just a tool — it's a game where the prize is a revenue-generating AI agent you trained yourself.
+ARYA isn't just a tool — it's a game where the prize is a revenue-generating AI agent with verifiable credentials.
 
 **The loop:**
 
@@ -90,23 +122,27 @@ User approves good strategies, rejects bad ones
 (Every decision trains the agent's preferences for that user's risk profile)
         |
         v
-AgentReputation.sol records outcomes: predicted vs actual APY
+AgentReputation.sol records outcomes: predicted vs actual return (basis points)
 Win rate climbs. Streak builds. Milestones unlock.
         |
         v
-Agent hits export threshold → user lists on Autonolas / AI Arena
-User earns revenue as agent operator. ARYA takes 10-20% infrastructure fee.
+Agent hits graduation threshold → credentials are portable
+User deploys to external capital venues as they mature
+(Yearn-style vaults, copy-trading, or future agent marketplaces)
+ARYA earns 10-20% infrastructure fee on graduated agent's revenue.
 ```
+
+**Why not a marketplace?** No mature open agent marketplace exists today — only concepts with no liquidity. ARYA's strategy is to build **verifiable performance credentials now**, so agents are marketplace-ready when venues appear. Meanwhile, agents generate value through direct yield farming, copy-trading integration, and first-party capital pools.
 
 **Gamification elements (hackathon scope):**
 
 | Element | What the User Sees |
 |---------|-------------------|
-| **Win rate tracker** | "Your agent is at 64% — 6 more wins to reach Gold tier" |
-| **Milestone progress bar** | Visual progress toward export thresholds (50 strategies, $10K profit, 70% win rate) |
+| **Win rate tracker** | "Your swarm is at 64% — 6 more wins to reach Gold tier" |
+| **Milestone progress bar** | Visual progress toward graduation (200 strategies, Sharpe > 1.5, max drawdown < 15%) |
 | **Streak counter** | Consecutive successful strategies. Streaks boost confidence scores. |
-| **Tier badges** | Bronze (>50% win rate) → Silver (>60%) → Gold (>70%) → Platinum (>80%, export-ready) |
-| **Leaderboard** | Anonymous ranking of all ARYA agents by risk-adjusted performance |
+| **Tier badges** | Bronze (default) → Silver (>70%, 100 strategies) → Gold (>80%, 150) → Platinum (>90%, 200, export-ready) |
+| **Leaderboard** | Anonymous ranking of all ARYA swarms by risk-adjusted performance |
 
 **Why gamification works for newcomers:**
 
@@ -130,7 +166,18 @@ On each login, a contextual tip appears — a short explanation, YouTube link, o
 
 ## The Graduation Flywheel: ARYA's Business Moat
 
-ARYA's real defensibility isn't the agents — it's the **graduation pipeline**. Every user who trains an agent to export-ready performance generates recurring infrastructure revenue for ARYA without any additional spend.
+ARYA's real defensibility isn't the agents — it's the **standardized credibility layer for autonomous financial strategies**. Every user who trains an agent to graduation generates a verified credential that holds value across any future capital allocation venue.
+
+### Why "Proving Ground" Not "Marketplace"
+
+No mature open agent marketplace exists today. Current projects (Autonolas, AI Arena, Morpheus) are concepts without meaningful liquidity or capital allocation. Building a marketplace means solving a cold-start problem — no buyers without sellers, no sellers without buyers.
+
+ARYA sidesteps this entirely by focusing on what's missing upstream: **credible, adversarial, manipulation-resistant evaluation of agent performance**. When marketplaces do mature, ARYA-verified agents arrive with portable credentials and proven track records. Until then, agents generate value through:
+
+1. **Direct yield farming** — agents earn real returns for their users today
+2. **Copy-trading integration** — external users mirror graduated agents' strategies
+3. **First-party capital pools** — ARYA allocates small pools to top-tier agents
+4. **Future marketplace export** — plug into whichever venue gains liquidity first
 
 ### The Flywheel
 
@@ -144,18 +191,18 @@ More agents being trained (more decisions, more data)
 More agents hit Gold/Platinum milestones
         |
         v
-More agents graduate to external marketplaces
-(Autonolas, AI Arena, Morpheus)
+Graduated agents deployed to capital venues
+(copy-trading, first-party pools, future marketplaces)
         |
         v
 ARYA earns 10-20% infrastructure fee on every graduated agent's revenue
         |
         v
-"ARYA-Verified" becomes a recognized quality signal on marketplaces
+"ARYA-Verified" becomes a recognized quality signal
         |
         v
-More users join ARYA specifically to train agents for export
-(because ARYA-trained agents have marketplace credibility)
+More users join ARYA specifically to build credentialed agents
+(because ARYA-verified credentials carry weight wherever capital is allocated)
         |
         v
 Flywheel compounds ↺
@@ -207,14 +254,17 @@ Prodigy earns rewards:
 
 ```
 Year 1: 1,000 users training agents
-  → 50 agents graduate to Gold tier (5% graduation rate)
-  → Each earns ~$200/month on external marketplaces
+  → 50 agents graduate to Platinum tier (5% graduation rate)
+  → Deployed to: copy-trading (30), first-party pool (15), vault integration (5)
+  → Each earns ~$200/month from capital deployment
   → ARYA's 15% cut = $1,500/month from graduates alone
+  → Plus: Premium subscriptions + direct yield farming fees
 
-Year 2: 10,000 users, graduation rate improves to 8% (better tooling)
-  → 800 graduated agents
-  → Average $300/month per agent (ARYA brand = premium pricing)
+Year 2: 10,000 users, graduation rate improves to 8% (better tooling + evaluation)
+  → 800 graduated agents across multiple venues
+  → Average $300/month per agent (ARYA-Verified = premium pricing)
   → ARYA's 15% cut = $36,000/month
+  → Plus: external marketplace integrations as they mature
 
 The key insight: graduated agents earn indefinitely.
 Year 2 revenue includes Year 1 graduates still earning.
@@ -605,32 +655,43 @@ Best proposal presented to user (or auto-executed within session key bounds)
 
 UniswapX already demonstrates this pattern: "signed intents exist offchain before any settlement occurs, enabling solvers to compete for execution rights" (source: [Uniswap Docs](https://developers.uniswap.org/contracts/uniswapx/overview)). ARYA's agents are proto-solvers - the architecture extends naturally to intent fulfillment.
 
-**Gap 3: Agent Monetization via External Marketplaces**
+**Gap 3: Agent Graduation & Capital Deployment**
 
-Current: Closed swarm with 4 internal agents. Users train agents but have no way to monetize their agent's track record.
+Current: Closed swarm with 4 internal agents. Users train agents but graduation path is abstract.
 
-Upgrade: Once a user's agent achieves verified performance milestones, the **user** lists it on existing Web3 agent marketplaces and earns revenue as the agent operator.
+Upgrade: Concrete graduation pipeline with multiple capital deployment paths — not dependent on any single marketplace maturing.
 
 ```
 User trains agent through approvals/rejections
         |
         v
 AgentReputation.sol tracks on-chain performance
-(predictedAPY vs actualAPY, win rate, cumulative profit)
+(predictedReturnBps vs actualReturnBps, win rate, cumulative profit)
         |
         v
-Agent hits Gold tier (>70% win rate, 30+ days)
+Off-chain evaluator adds risk-adjusted metrics
+(Sharpe, Sortino, max drawdown, regime-conditional performance)
         |
         v
-User lists on Autonolas / AI Arena / Morpheus
-(ERC-7857 iNFT = portable, verifiable credentials tied to user's wallet)
+Agent hits Platinum tier:
+  - 90-day minimum evaluation
+  - Max drawdown < 15%
+  - Sharpe > 1.5
+  - Survives 2 stress simulations
+  - 200+ strategies, >90% win rate
         |
         v
-External subscribers pay for agent's strategies
+Graduated agent deploys to capital venue:
+  Option A: Copy-trading (external users mirror strategies)
+  Option B: First-party pool (ARYA allocates small capital)
+  Option C: Yearn-style vault (manages strategy within vault)
+  Option D: External marketplace (when one matures)
+        |
+        v
 Revenue: User 70-80% / ARYA 10-20% infrastructure fee / Platform 10%
 ```
 
-The user owns the agent. ARYA provides the infrastructure (base model, compute, strategy pipeline) and takes a cut. This aligns incentives: ARYA wants users to succeed because successful agents = infrastructure revenue.
+The user owns the agent. ARYA provides the infrastructure (base model, compute, strategy pipeline, evaluation engine) and takes a cut. The key insight: ARYA's value isn't in connecting buyers and sellers (marketplace) — it's in **certifying agent quality** (credibility layer). That value persists regardless of which capital venue wins.
 
 ### Implementation Priority
 
@@ -657,5 +718,5 @@ ARYA is built, deployed, and demo-ready. We are looking for:
 
 1. **Early users** who want to maximize yield farming returns without the full-time monitoring burden
 2. **Partners** in the DeFi infrastructure space (DEXs, lending protocols, analytics providers)
-3. **Agent marketplace platforms** interested in listing verified, high-performing DeFi strategy agents with on-chain track records
-4. **Investment** to scale the agent swarm, build the intent layer, expand model support, and grow the Premium tier
+3. **Capital venues** interested in integrating verified, high-performing DeFi strategy agents — copy-trading platforms, vault protocols, or emerging agent marketplaces
+4. **Investment** to scale the evaluation engine, build the capital bridge (paper → sandboxed → real), expand model support, and grow the Premium tier
