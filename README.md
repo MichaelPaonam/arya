@@ -136,9 +136,14 @@ cp .env.example .env
 # Smart contracts (Solidity + Foundry)
 cd packages/contracts
 forge build            # Compile contracts
-forge test             # Run all tests
+forge test             # Run all tests (105 tests across 4 suites)
 forge test -vvv        # Verbose output for debugging
 forge test --match-contract YieldSwarmRegistryTest  # Run specific test file
+
+# Deploy to 0G Galileo testnet
+cp .env.example .env
+# Fill in DEPLOYER_PRIVATE_KEY and ORCHESTRATOR_ADDRESS
+forge script script/Deploy.s.sol --rpc-url og_testnet --broadcast
 
 # Start the dashboard (local dev)
 cd packages/frontend
