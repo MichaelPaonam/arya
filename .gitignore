@@ -20,6 +20,7 @@ typechain-types/
 forge-out/
 packages/contracts/out/
 packages/contracts/cache/
+packages/contracts/lib/
 
 # IDE
 .vscode/
