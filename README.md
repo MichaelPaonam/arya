@@ -165,16 +165,17 @@ Agents run as Vercel serverless functions (`/api/agents/*`). The Scout Agent sca
 ## Project Structure
 
 ```
-arya/
+open-agent/
 ├── docs/
-│   ├── architecture/        # System design and diagrams
-│   ├── research/            # Yield farming and sponsor SDK research
-│   └── submission/          # Demo script, hackathon write-ups
+│   └── arya-logo.png
 ├── packages/
-│   ├── contracts/           # Solidity smart contracts
+│   ├── contracts/           # Solidity smart contracts (Foundry)
+│   │   ├── src/             # Contract source files
+│   │   ├── test/            # Forge test files
+│   │   └── script/          # Deploy scripts
 │   ├── agents/              # TypeScript agent implementations
 │   └── frontend/            # Next.js dashboard
-├── FEEDBACK.md              # Uniswap developer experience feedback
+├── .env.example
 └── README.md                # This file
 ```
 
