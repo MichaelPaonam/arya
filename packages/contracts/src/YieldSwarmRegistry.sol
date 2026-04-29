@@ -5,16 +5,9 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC7857Metadata, IntelligentData} from "./interfaces/IERC7857Metadata.sol";
 import {IERC7857Authorize} from "./interfaces/IERC7857Authorize.sol";
+import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
 
-contract YieldSwarmRegistry is ERC721, Ownable, IERC7857Metadata, IERC7857Authorize {
-    struct AgentInfo {
-        uint256 tokenId;
-        string agentType;
-        string metadataURI;
-        uint256 registeredAt;
-        address user;
-    }
-
+contract YieldSwarmRegistry is ERC721, Ownable, IERC7857Metadata, IERC7857Authorize, IAgentRegistry {
     struct Decision {
         uint256 agentId;
         bytes32 strategyHash;
