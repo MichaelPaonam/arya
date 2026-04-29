@@ -122,16 +122,23 @@ Prerequisites for running ARYA locally:
 git clone https://github.com/MichaelPaonam/arya.git
 cd arya
 
-# Install dependencies
+# Install Foundry (if not already installed)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Install frontend dependencies
 npm install
 
 # Configure environment
 cp .env.example .env
 # Fill in API keys and contract addresses
 
-# Run smart contract tests
+# Smart contracts (Solidity + Foundry)
 cd packages/contracts
-forge test
+forge build            # Compile contracts
+forge test             # Run all tests
+forge test -vvv        # Verbose output for debugging
+forge test --match-contract YieldSwarmRegistryTest  # Run specific test file
 
 # Start the dashboard (local dev)
 cd packages/frontend
