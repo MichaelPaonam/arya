@@ -18,6 +18,9 @@ artifacts/
 cache_hardhat/
 typechain-types/
 forge-out/
+packages/contracts/out/
+packages/contracts/cache/
+packages/contracts/lib/
 
 # IDE
 .vscode/
@@ -41,6 +44,7 @@ coverage.json
 # Misc
 .vercel
 .turbo
+*.pdf
 
 CLAUDE.md
 docs/plan.md

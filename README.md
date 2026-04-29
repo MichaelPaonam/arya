@@ -65,6 +65,7 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 | `YieldSwarmRegistry.sol` | ERC-7857 iNFT registry - each agent has a verifiable on-chain identity |
 | `StrategyVault.sol` | Human-in-the-loop approval gate - agents propose, only the owner can approve fund movements |
 | `AgentReputation.sol` | On-chain performance tracking - agents build verifiable reputation over time |
+| ERC-4337 Smart Accounts | Session keys for bounded agent autonomy, batched transactions, gas sponsorship via paymaster |
 
 ## Sponsor Integrations
 
@@ -83,7 +84,7 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 | Auth | SIWE (Sign-In With Ethereum) |
 | Agent Framework | LangGraph.js (TypeScript) |
 | LLM | Anthropic Claude Haiku 4.5 (BYOK) |
-| Contracts | Solidity, Hardhat |
+| Contracts | Solidity, Foundry, ERC-4337 |
 | Blockchain | 0G Chain Testnet, Ethereum Sepolia |
 | Storage | 0G Storage SDK |
 | Session/User Data | Upstash Redis |
@@ -94,32 +95,55 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 
 ## Getting Started
 
-### Prerequisites
+### For Users
+
+All you need to use ARYA:
+
+1. **A Web3 wallet** (MetaMask, Rainbow, etc.) — connect via the dashboard
+2. **An Anthropic API key** (Standard plan only) — enter in Settings for AI-powered analysis. Get one at [console.anthropic.com](https://console.anthropic.com)
+
+That's it. No accounts to create, no infrastructure to manage. Connect your wallet, optionally add your API key, and ARYA's agents start working for you.
+
+> Without an API key, ARYA still discovers opportunities and provides rule-based risk scores. Add a key to unlock AI-powered reasoning and strategy explanations.
+
+### For Developers
+
+Prerequisites for running ARYA locally:
 
 - Node.js 18+
-- MetaMask configured for 0G Chain Testnet
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (forge, cast, anvil)
 - Uniswap API key from [developers.uniswap.org](https://developers.uniswap.org)
-- KeeperHub account from [keeperhub.com](https://keeperhub.com)
+- KeeperHub API key (`kh_`) from [keeperhub.com](https://keeperhub.com)
 - Upstash Redis database from [upstash.com](https://upstash.com) (free tier)
-- Anthropic API key (for Standard plan - BYOK) from [console.anthropic.com](https://console.anthropic.com)
-
-### Setup
+- Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
 
 ```bash
 # Clone the repository
 git clone https://github.com/MichaelPaonam/arya.git
 cd arya
 
-# Install dependencies
+# Install Foundry (if not already installed)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Install frontend dependencies
 npm install
 
 # Configure environment
 cp .env.example .env
 # Fill in API keys and contract addresses
 
-# Run smart contract tests
+# Smart contracts (Solidity + Foundry)
 cd packages/contracts
-npx hardhat test
+forge build            # Compile contracts
+forge test             # Run all tests (105 tests across 4 suites)
+forge test -vvv        # Verbose output for debugging
+forge test --match-contract YieldSwarmRegistryTest  # Run specific test file
+
+# Deploy to 0G Galileo testnet
+cp .env.example .env
+# Fill in DEPLOYER_PRIVATE_KEY and ORCHESTRATOR_ADDRESS
+forge script script/Deploy.s.sol --rpc-url og_testnet --broadcast
 
 # Start the dashboard (local dev)
 cd packages/frontend
