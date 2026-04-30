@@ -135,6 +135,7 @@ cp .env.example .env
 
 # Smart contracts (Solidity + Foundry)
 cd packages/contracts
+forge install          # Download dependencies (forge-std, openzeppelin, account-abstraction)
 forge build            # Compile contracts
 forge test             # Run all tests (105 tests across 4 suites)
 forge test -vvv        # Verbose output for debugging
