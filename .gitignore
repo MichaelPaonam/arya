@@ -21,6 +21,10 @@ forge-out/
 packages/contracts/out/
 packages/contracts/cache/
 
+# Agents
+packages/agents/node_modules/
+packages/agents/dist/
+
 # IDE
 .vscode/
 .idea/
