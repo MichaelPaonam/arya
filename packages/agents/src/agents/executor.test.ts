@@ -17,6 +17,11 @@ vi.mock("../tools/session-key.js", () => ({
   validateSessionKey: vi.fn(),
 }));
 
+vi.mock("../tools/wallet.js", () => ({
+  getTokenBalance: vi.fn(),
+  getNativeBalance: vi.fn(),
+}));
+
 describe("Executor Agent", () => {
   const mockProposal: StrategyProposal = {
     id: "strat-1",
@@ -350,6 +355,107 @@ describe("Executor Agent", () => {
       });
 
       expect(result.status).toBe("pending_approval");
+    });
+  });
+
+  describe("Wallet Balance Checks", () => {
+    it("should fail if wallet has insufficient token balance", async () => {
+      const { getTokenBalance } = await import("../tools/wallet.js");
+      vi.mocked(getTokenBalance).mockResolvedValue({
+        balance: "100000", // 0.1 USDC (6 decimals) — not enough
+        decimals: 6,
+        symbol: "USDC",
+      });
+
+      const result = await executorAgent({
+        proposal: mockProposal,
+        walletAddress: "0xuser",
+        chainId: 1,
+      });
+
+      expect(result.status).toBe("failed");
+      expect(result.error).toContain("insufficient");
+    });
+
+    it("should proceed if wallet has sufficient token balance", async () => {
+      const { getTokenBalance, getNativeBalance } = await import("../tools/wallet.js");
+      vi.mocked(getTokenBalance).mockResolvedValue({
+        balance: "10000000000", // 10,000 USDC
+        decimals: 6,
+        symbol: "USDC",
+      });
+      vi.mocked(getNativeBalance).mockResolvedValue({
+        balance: "1000000000000000000", // 1 ETH — plenty for gas
+      });
+
+      const { checkApproval, buildSwapCalldata } = await import("../tools/uniswap.js");
+      vi.mocked(checkApproval).mockResolvedValue({ isApproved: true, allowance: "999999999" });
+      vi.mocked(buildSwapCalldata).mockResolvedValue({
+        to: "0xrouter",
+        data: "0xswap",
+        value: "0",
+        gasLimit: "200000",
+      });
+
+      const { createWorkflow, publishWorkflow } = await import("../tools/keeperhub.js");
+      vi.mocked(createWorkflow).mockResolvedValue({ id: "wf_bal", name: "test", status: "draft", createdAt: "" });
+      vi.mocked(publishWorkflow).mockResolvedValue({ id: "wf_bal", status: "live", publishedAt: "" });
+
+      const result = await executorAgent({
+        proposal: mockProposal,
+        walletAddress: "0xuser",
+        chainId: 1,
+      });
+
+      expect(getTokenBalance).toHaveBeenCalledWith({
+        token: mockProposal.opportunity.tokenPair[0],
+        walletAddress: "0xuser",
+        chainId: 1,
+      });
+      expect(getNativeBalance).toHaveBeenCalledWith({
+        walletAddress: "0xuser",
+        chainId: 1,
+      });
+      expect(result.status).toBe("executed");
+    });
+
+    it("should fail if native balance is insufficient for gas fees", async () => {
+      const { getTokenBalance, getNativeBalance } = await import("../tools/wallet.js");
+      vi.mocked(getTokenBalance).mockResolvedValue({
+        balance: "10000000000", // 10,000 USDC — enough for swap
+        decimals: 6,
+        symbol: "USDC",
+      });
+      vi.mocked(getNativeBalance).mockResolvedValue({
+        balance: "1000", // ~0.000000000000001 ETH — not enough for gas
+      });
+
+      const result = await executorAgent({
+        proposal: mockProposal,
+        walletAddress: "0xuser",
+        chainId: 1,
+        gasConfig: {
+          maxFeePerGas: "2500000000",
+          maxPriorityFeePerGas: "2500000000",
+        },
+      });
+
+      expect(result.status).toBe("failed");
+      expect(result.error).toContain("gas");
+    });
+
+    it("should fail if balance check itself throws", async () => {
+      const { getTokenBalance } = await import("../tools/wallet.js");
+      vi.mocked(getTokenBalance).mockRejectedValue(new Error("RPC unavailable"));
+
+      const result = await executorAgent({
+        proposal: mockProposal,
+        walletAddress: "0xuser",
+        chainId: 1,
+      });
+
+      expect(result.status).toBe("failed");
+      expect(result.error).toContain("RPC unavailable");
     });
   });
 });
