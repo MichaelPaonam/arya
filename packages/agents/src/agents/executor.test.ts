@@ -13,6 +13,10 @@ vi.mock("../tools/keeperhub.js", () => ({
   publishWorkflow: vi.fn(),
 }));
 
+vi.mock("../tools/session-key.js", () => ({
+  validateSessionKey: vi.fn(),
+}));
+
 describe("Executor Agent", () => {
   const mockProposal: StrategyProposal = {
     id: "strat-1",
@@ -84,6 +88,41 @@ describe("Executor Agent", () => {
     expect(result.status).toBe("executed");
     expect(result.txHash).toBeDefined();
     expect(result.keeperWorkflowId).toBe("wf_123");
+  });
+
+  it("should pass gas config to swap calldata builder", async () => {
+    const { checkApproval, buildSwapCalldata } = await import("../tools/uniswap.js");
+    vi.mocked(checkApproval).mockResolvedValue({ isApproved: true, allowance: "999999999" });
+    vi.mocked(buildSwapCalldata).mockResolvedValue({
+      to: "0xrouter",
+      data: "0xswap",
+      value: "0",
+      gasLimit: "200000",
+      maxFeePerGas: "2500000000",
+      maxPriorityFeePerGas: "2500000000",
+    });
+
+    const { createWorkflow, publishWorkflow } = await import("../tools/keeperhub.js");
+    vi.mocked(createWorkflow).mockResolvedValue({ id: "wf_gas", name: "test", status: "draft", createdAt: "" });
+    vi.mocked(publishWorkflow).mockResolvedValue({ id: "wf_gas", status: "live", publishedAt: "" });
+
+    const result = await executorAgent({
+      proposal: mockProposal,
+      walletAddress: "0xuser",
+      chainId: 16602,
+      gasConfig: {
+        maxFeePerGas: "2500000000",
+        maxPriorityFeePerGas: "2500000000",
+      },
+    });
+
+    expect(buildSwapCalldata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        maxFeePerGas: "2500000000",
+        maxPriorityFeePerGas: "2500000000",
+      })
+    );
+    expect(result.status).toBe("executed");
   });
 
   it("should request approval if token is not approved", async () => {
@@ -196,5 +235,121 @@ describe("Executor Agent", () => {
 
     // Verify no LLM module was imported or called
     expect(vi.fn()).not.toHaveBeenCalled();
+  });
+
+  describe("Session Key Auto-Execution", () => {
+    const arbProposal: StrategyProposal = {
+      ...mockProposal,
+      id: "strat-arb",
+      opportunity: {
+        ...mockProposal.opportunity,
+        category: "arbitrage",
+      },
+      debateOutcome: {
+        ...mockProposal.debateOutcome,
+        tier: "fast",
+      },
+    };
+
+    it("should auto-execute if valid session key covers the transaction", async () => {
+      const { validateSessionKey } = await import("../tools/session-key.js");
+      vi.mocked(validateSessionKey).mockResolvedValue({
+        isValid: true,
+        remainingBudget: "5000000000",
+      });
+
+      const { checkApproval, buildSwapCalldata } = await import("../tools/uniswap.js");
+      vi.mocked(checkApproval).mockResolvedValue({ isApproved: true, allowance: "999999999" });
+      vi.mocked(buildSwapCalldata).mockResolvedValue({
+        to: "0xrouter",
+        data: "0xswap",
+        value: "0",
+        gasLimit: "150000",
+      });
+
+      const { createWorkflow, publishWorkflow } = await import("../tools/keeperhub.js");
+      vi.mocked(createWorkflow).mockResolvedValue({ id: "wf_arb", name: "ARYA-Monitor-Arb", status: "draft", createdAt: "" });
+      vi.mocked(publishWorkflow).mockResolvedValue({ id: "wf_arb", status: "live", publishedAt: "" });
+
+      const result = await executorAgent({
+        proposal: arbProposal,
+        walletAddress: "0xuser",
+        chainId: 1,
+        sessionKeyAddress: "0xagentKey",
+      });
+
+      expect(validateSessionKey).toHaveBeenCalledWith({
+        sessionKey: "0xagentKey",
+        target: arbProposal.actions[0]!.target,
+        value: arbProposal.actions[0]!.value,
+      });
+      expect(result.status).toBe("executed");
+      expect(result.autoExecuted).toBe(true);
+    });
+
+    it("should queue for human approval if session key is expired", async () => {
+      const { validateSessionKey } = await import("../tools/session-key.js");
+      vi.mocked(validateSessionKey).mockResolvedValue({
+        isValid: false,
+        reason: "Session key expired",
+      });
+
+      const result = await executorAgent({
+        proposal: arbProposal,
+        walletAddress: "0xuser",
+        chainId: 1,
+        sessionKeyAddress: "0xexpiredKey",
+      });
+
+      expect(result.status).toBe("pending_approval");
+      expect(result.autoExecuted).toBe(false);
+    });
+
+    it("should queue for human approval if spend limit exceeded", async () => {
+      const { validateSessionKey } = await import("../tools/session-key.js");
+      vi.mocked(validateSessionKey).mockResolvedValue({
+        isValid: false,
+        reason: "Spend limit exceeded",
+      });
+
+      const result = await executorAgent({
+        proposal: arbProposal,
+        walletAddress: "0xuser",
+        chainId: 1,
+        sessionKeyAddress: "0xagentKey",
+      });
+
+      expect(result.status).toBe("pending_approval");
+      expect(result.autoExecuted).toBe(false);
+    });
+
+    it("should fall back to human approval if no session key provided", async () => {
+      const result = await executorAgent({
+        proposal: arbProposal,
+        walletAddress: "0xuser",
+        chainId: 1,
+        // no sessionKeyAddress
+      });
+
+      expect(result.status).toBe("pending_approval");
+      expect(result.autoExecuted).toBe(false);
+    });
+
+    it("should auto-execute only when target is in session key's allowed list", async () => {
+      const { validateSessionKey } = await import("../tools/session-key.js");
+      vi.mocked(validateSessionKey).mockResolvedValue({
+        isValid: false,
+        reason: "Target not allowed",
+      });
+
+      const result = await executorAgent({
+        proposal: arbProposal,
+        walletAddress: "0xuser",
+        chainId: 1,
+        sessionKeyAddress: "0xagentKey",
+      });
+
+      expect(result.status).toBe("pending_approval");
+    });
   });
 });
