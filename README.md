@@ -58,14 +58,17 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 | **Executor** | Builds swap transactions via Uniswap API and creates KeeperHub monitoring workflows |
 | **Orchestrator** | Coordinates the swarm pipeline and manages state on 0G Storage |
 
-### Smart Contracts (0G Chain Testnet)
+### Smart Contracts (0G Chain Galileo Testnet)
 
-| Contract | Purpose |
-|----------|---------|
-| `YieldSwarmRegistry.sol` | ERC-7857 iNFT registry - each agent has a verifiable on-chain identity |
-| `StrategyVault.sol` | Human-in-the-loop approval gate - agents propose, only the owner can approve fund movements |
-| `AgentReputation.sol` | On-chain performance tracking - agents build verifiable reputation over time |
-| ERC-4337 Smart Accounts | Session keys for bounded agent autonomy, batched transactions, gas sponsorship via paymaster |
+All contracts are deployed on 0G Galileo Testnet (Chain ID: 16602).
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| `YieldSwarmRegistry.sol` | `0x84f8aA3b17043DC2A10da1b405Cebe2fFbB6eA41` | ERC-7857 iNFT registry - each agent has a verifiable on-chain identity |
+| `StrategyVault.sol` | `0x70bf0491d71f64271fae47ad008d8c83ae6f01a9` | Human-in-the-loop approval gate - agents propose, only the owner can approve fund movements |
+| `AgentReputation.sol` | `0x0e43ed89f56ade0349586bb39c494218c7389f9b` | On-chain performance tracking - agents build verifiable reputation over time |
+| `SmartAccountFactory.sol` | `0xb9a693904f74e1b710e8374f4454b265b97f43b5` | CREATE2 deterministic smart account deployment for users |
+| `SessionKeyModule.sol` | `0x7e32eded548a5512b7956a8b3817f2bad4bdc20a` | Session keys for bounded agent autonomy with spend limits and time bounds |
 
 ## Sponsor Integrations
 
@@ -119,12 +122,15 @@ Prerequisites for running ARYA locally:
 
 ```bash
 # Clone the repository
-git clone https://github.com/MichaelPaonam/arya.git
-cd arya
+git clone https://github.com/MichaelPaonam/open-agent.git
+cd open-agent
 
 # Install Foundry (if not already installed)
 curl -L https://foundry.paradigm.xyz | bash
 foundryup
+
+# Initialize submodules (contract dependencies)
+git submodule update --init --recursive
 
 # Install frontend dependencies
 npm install
@@ -135,7 +141,6 @@ cp .env.example .env
 
 # Smart contracts (Solidity + Foundry)
 cd packages/contracts
-forge install          # Download dependencies (forge-std, openzeppelin, account-abstraction)
 forge build            # Compile contracts
 forge test             # Run all tests (105 tests across 4 suites)
 forge test -vvv        # Verbose output for debugging
@@ -143,11 +148,12 @@ forge test --match-contract YieldSwarmRegistryTest  # Run specific test file
 
 # Deploy to 0G Galileo testnet
 cp .env.example .env
-# Fill in DEPLOYER_PRIVATE_KEY and ORCHESTRATOR_ADDRESS
-forge script script/Deploy.s.sol --rpc-url og_testnet --broadcast
+# Fill in DEPLOYER_PRIVATE_KEY and ORCHESTRATOR_ADDRESS (both need 0G testnet gas)
+source .env
+forge script script/Deploy.s.sol --rpc-url og_testnet --broadcast --with-gas-price 2500000000 --priority-gas-price 2500000000
 
 # Start the dashboard (local dev)
-cd packages/frontend
+cd ../frontend
 npm run dev
 ```
 
@@ -172,12 +178,20 @@ open-agent/
 ├── packages/
 │   ├── contracts/           # Solidity smart contracts (Foundry)
 │   │   ├── src/             # Contract source files
-│   │   ├── test/            # Forge test files
-│   │   └── script/          # Deploy scripts
+│   │   │   ├── interfaces/  # IAgentRegistry, IERC7857 interfaces
+│   │   │   ├── YieldSwarmRegistry.sol
+│   │   │   ├── StrategyVault.sol
+│   │   │   ├── AgentReputation.sol
+│   │   │   ├── SmartAccountFactory.sol
+│   │   │   └── SessionKeyModule.sol
+│   │   ├── test/            # Forge test files (105 tests)
+│   │   ├── script/          # Deploy scripts
+│   │   ├── broadcast/       # Deployment receipts (tx hashes, addresses)
+│   │   └── lib/             # Dependencies (git submodules)
 │   ├── agents/              # TypeScript agent implementations
 │   └── frontend/            # Next.js dashboard
 ├── .env.example
-└── README.md                # This file
+└── README.md
 ```
 
 ## How It Works
