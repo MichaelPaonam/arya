@@ -88,7 +88,7 @@ export default function AgentsPage() {
 
           {/* Sparkline */}
           <div className="mt-5 h-20">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <LineChart data={swarm.spark} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                 <XAxis dataKey="d" hide />
                 <YAxis hide domain={["dataMin - 4", "dataMax + 4"]} />

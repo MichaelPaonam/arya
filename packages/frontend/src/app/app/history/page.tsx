@@ -36,7 +36,7 @@ export default function HistoryPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-5">
           <div>
             <div className="label-eyebrow">Event Stream</div>
-            <h2 className="mt-1 text-lg font-semibold">Every proposal, every approval, every transaction</h2>
+            <h2 className="mt-1 text-lg font-semibold">Transaction History</h2>
           </div>
           <div className="flex gap-1.5 text-xs">
             {["All", "Executed", "Pending", "Rejected"].map((t, i) => (

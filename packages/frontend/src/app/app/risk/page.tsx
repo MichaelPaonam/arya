@@ -44,7 +44,7 @@ export default function RiskPage() {
           <div className="label-eyebrow">Decomposition</div>
           <h3 className="mt-1 text-lg font-semibold">Six-vector risk signature</h3>
           <div className="mt-4 h-80">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <RadarChart data={radar} outerRadius="78%">
                 <PolarGrid stroke="var(--outline-variant)" />
                 <PolarAngleAxis dataKey="axis" tick={{ fill: "var(--on-surface-variant)", fontSize: 11 }} />
@@ -58,7 +58,7 @@ export default function RiskPage() {
           <div className="label-eyebrow">Asset Exposure</div>
           <h3 className="mt-1 text-lg font-semibold">By bucket · %</h3>
           <div className="mt-4 h-80">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart data={exposure} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 6" stroke="var(--outline-variant)" strokeOpacity={0.4} vertical={false} />
                 <XAxis dataKey="name" stroke="var(--on-surface-variant)" axisLine={false} tickLine={false} fontSize={11} />

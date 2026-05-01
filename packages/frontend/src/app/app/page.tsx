@@ -159,7 +159,7 @@ export default function CommandCenterPage() {
             </div>
           </div>
           <div className="mt-6 h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <AreaChart data={apyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="apyFill" x1="0" y1="0" x2="0" y2="1">
@@ -203,7 +203,7 @@ export default function CommandCenterPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-5">
           <div>
             <div className="label-eyebrow">Live Feed</div>
-            <h2 className="mt-1 text-lg font-semibold">Top opportunities surfaced by the swarm</h2>
+            <h2 className="mt-1 text-lg font-semibold">Swarm Picks</h2>
           </div>
           <div className="flex items-center gap-2 text-xs text-on-surface-variant">
             <span className="size-1.5 animate-pulse rounded-full bg-tertiary" />

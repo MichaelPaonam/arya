@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { AppShell } from "@/components/app-shell";
-import { Wallet, ShieldCheck, Bell, Zap, Key, Copy } from "lucide-react";
+import { Wallet, ShieldCheck, Bell, Zap, Key, Copy, Brain } from "lucide-react";
 
 export default function SettingsPage() {
   return (
@@ -62,6 +63,8 @@ export default function SettingsPage() {
             Revoke all
           </button>
         </Card>
+
+        <LLMConfigCard />
 
         <Card icon={ShieldCheck} title="Danger Zone" desc="Irreversible actions.">
           <p className="text-xs text-on-surface-variant">
@@ -143,5 +146,123 @@ function KeyRow({ agent, scope, expiry }: { agent: string; scope: string; expiry
         <div className="text-mono text-xs font-semibold">{expiry}</div>
       </div>
     </div>
+  );
+}
+
+const ANTHROPIC_MODELS = [
+  { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
+  { id: "claude-sonnet-4-6-20260320", label: "Claude Sonnet 4.6" },
+  { id: "claude-opus-4-7-20260401", label: "Claude Opus 4.7" },
+];
+
+function LLMConfigCard() {
+  const [provider, setProvider] = useState<"anthropic" | "openrouter">(() => {
+    if (typeof window === "undefined") return "anthropic";
+    return (localStorage.getItem("arya-llm-provider") as "anthropic" | "openrouter") || "anthropic";
+  });
+  const [apiKey, setApiKey] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("arya-llm-api-key") || "";
+  });
+  const [model, setModel] = useState(() => {
+    if (typeof window === "undefined") return ANTHROPIC_MODELS[0].id;
+    return localStorage.getItem("arya-llm-model") || ANTHROPIC_MODELS[0].id;
+  });
+  const [keyInput, setKeyInput] = useState("");
+
+  useEffect(() => {
+    localStorage.setItem("arya-llm-provider", provider);
+  }, [provider]);
+
+  useEffect(() => {
+    localStorage.setItem("arya-llm-model", model);
+  }, [model]);
+
+  const saveKey = () => {
+    if (!keyInput.trim()) return;
+    setApiKey(keyInput.trim());
+    localStorage.setItem("arya-llm-api-key", keyInput.trim());
+    setKeyInput("");
+  };
+
+  const clearKey = () => {
+    setApiKey("");
+    localStorage.removeItem("arya-llm-api-key");
+  };
+
+  const maskedKey = apiKey ? `••••••••${apiKey.slice(-4)}` : "";
+
+  return (
+    <Card icon={Brain} title="LLM Configuration" desc="API key and model for the agent swarm.">
+      <div className="flex gap-1 rounded-lg border border-border bg-foreground/5 p-1">
+        <button
+          onClick={() => { setProvider("anthropic"); setModel(ANTHROPIC_MODELS[0].id); }}
+          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition ${provider === "anthropic" ? "bg-secondary/20 text-secondary" : "text-on-surface-variant hover:text-foreground"}`}
+        >
+          Anthropic
+        </button>
+        <button
+          onClick={() => { setProvider("openrouter"); setModel(""); }}
+          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition ${provider === "openrouter" ? "bg-secondary/20 text-secondary" : "text-on-surface-variant hover:text-foreground"}`}
+        >
+          OpenRouter
+        </button>
+      </div>
+
+      <div className="rounded-lg border border-border bg-foreground/5 px-3.5 py-2.5">
+        <div className="label-eyebrow mb-1.5">API Key</div>
+        {apiKey ? (
+          <div className="flex items-center justify-between">
+            <span className="text-mono text-sm">{maskedKey}</span>
+            <button onClick={clearKey} className="text-[10px] font-semibold uppercase tracking-wider text-destructive transition hover:text-destructive/80">
+              Clear
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && saveKey()}
+              placeholder={provider === "anthropic" ? "sk-ant-..." : "sk-or-..."}
+              className="flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-sm placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-1 focus:ring-secondary"
+            />
+            <button onClick={saveKey} className="rounded-md bg-secondary/15 px-3 py-1.5 text-xs font-semibold text-secondary transition hover:bg-secondary/25">
+              Save
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-border bg-foreground/5 px-3.5 py-2.5">
+        <div className="label-eyebrow mb-1.5">Model</div>
+        {provider === "anthropic" ? (
+          <select
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-secondary"
+          >
+            {ANTHROPIC_MODELS.map((m) => (
+              <option key={m.id} value={m.id}>{m.label}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type="text"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder="anthropic/claude-3.5-sonnet"
+            className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-1 focus:ring-secondary"
+          />
+        )}
+      </div>
+
+      {apiKey && (
+        <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-tertiary/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-tertiary">
+          <span className="size-1.5 rounded-full bg-tertiary" /> Key saved
+        </span>
+      )}
+    </Card>
   );
 }

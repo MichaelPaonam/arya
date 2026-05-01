@@ -5,7 +5,6 @@ import Image from "next/image";
 import { motion, type Variants } from "framer-motion";
 import { ThemeToggle } from "@/components/theme-provider";
 import {
-  Triangle,
   Search,
   ShieldCheck,
   Network,
@@ -95,9 +94,7 @@ export default function LandingPage() {
       {/* Header */}
       <header className="mx-auto flex max-w-7xl items-center justify-between px-6 pt-6 sm:px-10">
         <Link href="/" className="flex items-center gap-2.5 transition hover:opacity-80">
-          <span className="grid size-9 place-items-center rounded-lg bg-secondary/15 text-secondary">
-            <Triangle className="size-4 fill-current" strokeWidth={0} />
-          </span>
+          <Image src="/arya-logo-no-bg.png" alt="ARYA" width={32} height={32} className="dark:invert" />
           <span className="font-bold tracking-[0.25em] text-foreground text-xl">ARYA</span>
         </Link>
         <nav className="hidden items-center gap-7 text-sm text-on-surface-variant md:flex">
@@ -141,7 +138,7 @@ export default function LandingPage() {
                 alt="ARYA logo"
                 width={144}
                 height={144}
-                className="h-28 w-auto sm:h-36 drop-shadow-[0_8px_32px_rgba(125,211,252,0.25)]"
+                className="h-28 w-auto sm:h-36 drop-shadow-[0_8px_32px_rgba(125,211,252,0.25)] dark:invert"
                 priority
               />
             </motion.div>
@@ -423,9 +420,7 @@ export default function LandingPage() {
       <footer className="border-t border-border/60">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row sm:px-10">
           <div className="flex items-center gap-2.5">
-            <span className="grid size-7 place-items-center rounded-md bg-secondary/15 text-secondary">
-              <Triangle className="size-3 fill-current" strokeWidth={0} />
-            </span>
+            <Image src="/arya-logo-no-bg.png" alt="ARYA" width={24} height={24} className="dark:invert" />
             <span className="text-mono text-xs uppercase tracking-[0.25em] text-on-surface-variant">
               ARYA · Autonomous Realtime Yield Agents
             </span>

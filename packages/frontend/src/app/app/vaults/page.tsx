@@ -44,7 +44,7 @@ export default function VaultsPage() {
           <div className="text-mono text-sm text-on-surface-variant">USD millions</div>
         </div>
         <div className="mt-4 h-56">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <AreaChart data={tvlSeries} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="tvlFill" x1="0" y1="0" x2="0" y2="1">
