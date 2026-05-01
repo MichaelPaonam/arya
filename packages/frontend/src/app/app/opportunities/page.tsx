@@ -66,7 +66,7 @@ export default function OpportunitiesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-y border-border text-left">
-                {["Protocol", "Asset", "Chain", "Category", "Base", "Rewards", "Net APY", "TVL", "Risk", "Swarm", ""].map((h) => (
+                {["Protocol", "Asset", "Chain", "Category", "Base", "Rewards", "Net APY", "TVL", "Risk", "Swarm"].map((h) => (
                   <th key={h} className="label-eyebrow whitespace-nowrap px-4 py-3 font-semibold">
                     {h}
                   </th>
@@ -93,15 +93,15 @@ export default function OpportunitiesPage() {
                   <td className="text-mono px-4 py-4 text-on-surface-variant">{o.tvl}</td>
                   <td className="px-4 py-4"><RiskBadge level={o.risk} /></td>
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-1.5">
                       <span className="text-xs text-on-surface-variant">{o.swarm}</span>
-                      <TierBadge tier={o.tier} />
+                      <div className="flex items-center justify-between gap-2">
+                        <TierBadge tier={o.tier} />
+                        <button className="inline-flex h-7 items-center gap-1 rounded-lg bg-primary px-2.5 text-[11px] font-semibold text-primary-foreground transition hover:opacity-90">
+                          Allocate
+                        </button>
+                      </div>
                     </div>
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    <button className="inline-flex h-8 items-center gap-1 rounded-lg bg-foreground/5 px-3 text-xs font-semibold transition hover:bg-foreground/10">
-                      Allocate
-                    </button>
                   </td>
                 </tr>
               ))}
