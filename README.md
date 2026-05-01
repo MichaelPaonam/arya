@@ -141,9 +141,9 @@ All contracts are deployed on 0G Galileo Testnet (Chain ID: 16602).
 | Wallet | wagmi, viem, RainbowKit |
 | Auth | SIWE (Sign-In With Ethereum) |
 | Agent Framework | LangGraph.js (TypeScript) |
-| LLM | Claude Haiku 4.5 via OpenRouter (BYOK) |
+| LLM | Claude Haiku 4.5 (BYOK — Anthropic or OpenRouter) |
 | Contracts | Solidity, Foundry, ERC-4337 |
-| Blockchain | 0G Chain Testnet, Ethereum Sepolia |
+| Blockchain | 0G Chain Testnet |
 | Storage | 0G Storage SDK |
 | Session/User Data | Upstash Redis |
 | Swap | Uniswap Trading API |
@@ -158,7 +158,7 @@ All contracts are deployed on 0G Galileo Testnet (Chain ID: 16602).
 All you need to use ARYA:
 
 1. **A Web3 wallet** (MetaMask, Rainbow, etc.) — connect via the dashboard
-2. **An OpenRouter API key** (Standard plan only) — enter in Settings for AI-powered analysis. Get one at [openrouter.ai](https://openrouter.ai)
+2. **An LLM API key** (Standard plan only) — enter in Settings for AI-powered analysis. Supports [Anthropic](https://console.anthropic.com) or [OpenRouter](https://openrouter.ai)
 
 That's it. No accounts to create, no infrastructure to manage. Connect your wallet, optionally add your API key, and ARYA's agents start working for you.
 
@@ -170,10 +170,11 @@ Prerequisites for running ARYA locally:
 
 - Node.js 18+
 - [Foundry](https://book.getfoundry.sh/getting-started/installation) (forge, cast, anvil)
+- WalletConnect Project ID from [cloud.walletconnect.com](https://cloud.walletconnect.com)
 - Uniswap API key from [developers.uniswap.org](https://developers.uniswap.org)
 - KeeperHub API key (`kh_`) from [keeperhub.com](https://keeperhub.com)
 - Upstash Redis database from [upstash.com](https://upstash.com) (free tier)
-- OpenRouter API key from [openrouter.ai](https://openrouter.ai)
+- LLM API key: [Anthropic](https://console.anthropic.com) or [OpenRouter](https://openrouter.ai)
 
 ```bash
 # Clone the repository
@@ -215,7 +216,11 @@ npx tsc --noEmit       # Type-check
 
 # Start the dashboard (local dev)
 cd ../frontend
+npm install --legacy-peer-deps
 npm run dev
+
+# Run frontend tests
+npx vitest run         # 66 tests across 14 files
 ```
 
 ### Deploy to Vercel
@@ -258,7 +263,13 @@ open-agent/
 │   │       ├── storage/     # Redis client + 0G memory persistence
 │   │       ├── utils/       # LLM client (OpenRouter), IL math
 │   │       └── graph/       # Pipeline orchestration (runPipeline)
-│   └── frontend/            # Next.js 14 dashboard (23 tests)
+│   └── frontend/            # Next.js 14 dashboard (66 tests across 14 files)
+│       └── src/
+│           ├── app/         # Pages: Command, Opportunities, Agents, Risk, History, Vaults, Settings
+│           ├── components/  # App shell, providers, strategy cards, dialogs
+│           ├── hooks/       # useWallet, useAppMode
+│           ├── lib/         # wagmi config, feature flags
+│           └── mocks/       # Faker-based mock data generators
 ├── .env.example
 └── README.md
 ```

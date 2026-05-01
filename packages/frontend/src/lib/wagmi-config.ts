@@ -1,6 +1,5 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { defineChain } from "viem";
-import { sepolia } from "wagmi/chains";
 
 export const ogTestnet = defineChain({
   id: 16602,
@@ -22,7 +21,7 @@ export function getConfig() {
     _config = getDefaultConfig({
       appName: "ARYA",
       projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "placeholder",
-      chains: [ogTestnet, sepolia],
+      chains: [ogTestnet],
       ssr: true,
     });
   }
