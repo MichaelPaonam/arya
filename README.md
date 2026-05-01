@@ -22,31 +22,86 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 
 ## Architecture
 
+### System Overview
+
+```mermaid
+flowchart LR
+    subgraph Frontend["Frontend (Next.js)"]
+        Dashboard[Dashboard UI]
+        Approve[Approve / Reject]
+    end
+
+    subgraph Agents["Agent Swarm (LangGraph.js)"]
+        Scout[Scout Agent]
+        Risk[Risk Agent]
+        Orch[Orchestrator]
+        Exec[Executor Agent]
+    end
+
+    subgraph Contracts["0G Chain (Solidity)"]
+        Registry[YieldSwarmRegistry\nERC-7857 iNFT]
+        Vault[StrategyVault\nApproval Gate]
+        Rep[AgentReputation\nPerformance Log]
+    end
+
+    subgraph External["External Services"]
+        DeFiLlama[DefiLlama API]
+        Uniswap[Uniswap Trading API]
+        KeeperHub[KeeperHub\nAutomation]
+        ZeroG[0G Storage\nAgent Memory]
+    end
+
+    Dashboard -->|Run Scan| Orch
+    Scout -->|Yield Data| DeFiLlama
+    Scout -->|Pool Data| Uniswap
+    Orch --> Scout
+    Orch --> Risk
+    Orch -->|Proposal| Dashboard
+    Approve -->|Sign Tx| Vault
+    Vault -->|Approved| Exec
+    Exec --> Uniswap
+    Exec --> KeeperHub
+    Vault --> Rep
+    Orch --> ZeroG
+    Registry -.->|Identity| Agents
 ```
-┌─────────────────────────────────────────────┐
-│              ARYA Dashboard                  │
-│  [Strategy Feed] [Risk] [Portfolio] [Approve]│
-└──────────┬─────────────┬──────────┬─────────┘
-           │             │          │
-     ┌─────▼────┐  ┌─────▼────┐  ┌─▼──────────┐
-     │  Scout   │  │   Risk   │  │  Executor   │
-     │  Agent   │  │  Agent   │  │   Agent     │
-     └────┬─────┘  └────┬─────┘  └──┬──────────┘
-          └──────────────┼───────────┘
-                   ┌─────▼──────┐
-                   │Orchestrator│
-                   └─────┬──────┘
-          ┌──────────────┼──────────────┐
-    ┌─────▼─────┐  ┌─────▼─────┐  ┌────▼──────┐
-    │  0G Chain  │  │ 0G Storage│  │ KeeperHub │
-    │  (iNFT ID) │  │ (memory)  │  │ (automate)│
-    └───────────┘  └───────────┘  └───────────┘
-          │              │
-    ┌─────▼─────┐  ┌─────▼──────┐
-    │Uniswap API│  │Upstash     │
-    │           │  │Redis       │
-    └───────────┘  │(sessions)  │
-                   └────────────┘
+
+### Agent Pipeline Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as Dashboard
+    participant O as Orchestrator
+    participant S as Scout
+    participant R as Risk Agent
+    participant V as StrategyVault
+    participant E as Executor
+    participant U as Uniswap API
+    participant K as KeeperHub
+
+    User->>UI: Click "Run Scan"
+    UI->>O: POST /api/pipeline
+    O->>S: Discover opportunities
+    S-->>O: Yield opportunities[]
+    O->>R: Assess risk
+    R-->>O: Risk scores + debate
+    O->>UI: Strategy proposal
+    UI->>User: Present proposal (APY, risk, radar)
+
+    alt User Approves
+        User->>V: Sign approval tx (MetaMask)
+        V->>E: Strategy approved on-chain
+        E->>U: Build swap transaction
+        U-->>E: Signed tx
+        E->>K: Create monitoring workflow
+        K-->>E: Workflow armed
+        E-->>UI: Execution confirmed
+        V->>V: Log outcome → AgentReputation
+    else User Rejects
+        User->>UI: Reject
+        UI->>O: Feedback logged
+    end
 ```
 
 ### Agents
@@ -203,7 +258,7 @@ open-agent/
 │   │       ├── storage/     # Redis client + 0G memory persistence
 │   │       ├── utils/       # LLM client (OpenRouter), IL math
 │   │       └── graph/       # Pipeline orchestration (runPipeline)
-│   └── frontend/            # Next.js dashboard (not started)
+│   └── frontend/            # Next.js 14 dashboard (23 tests)
 ├── .env.example
 └── README.md
 ```
