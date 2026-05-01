@@ -1,11 +1,18 @@
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env["UPSTASH_REDIS_REST_URL"] ?? "",
+  token: process.env["UPSTASH_REDIS_REST_TOKEN"] ?? "",
+});
+
 export const redisClient = {
-  get: async (_key: string): Promise<string | null> => {
-    throw new Error("Not implemented");
+  get: async (key: string): Promise<string | null> => {
+    return redis.get<string>(key);
   },
-  set: async (_key: string, _value: string): Promise<void> => {
-    throw new Error("Not implemented");
+  set: async (key: string, value: string): Promise<void> => {
+    await redis.set(key, value);
   },
-  lpush: async (_key: string, _value: string): Promise<void> => {
-    throw new Error("Not implemented");
+  lpush: async (key: string, value: string): Promise<void> => {
+    await redis.lpush(key, value);
   },
 };
