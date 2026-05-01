@@ -5,6 +5,19 @@ export interface Tier1Input {
   riskAssessment: RiskAssessment;
 }
 
-export async function runTier1(_input: Tier1Input): Promise<DebateOutcome> {
-  throw new Error("Not implemented");
+export async function runTier1(input: Tier1Input): Promise<DebateOutcome> {
+  const start = Date.now();
+
+  // Rule-based confidence: inverse of risk score normalized to 0-1
+  const confidenceScore = Math.max(0.1, 1 - (input.riskAssessment.riskScore / 10));
+
+  return {
+    strategyId: input.opportunity.id,
+    tier: "fast",
+    challengesRaised: 0,
+    challengesSurvived: 0,
+    confidenceScore,
+    latencyMs: Date.now() - start,
+    debateLog: [],
+  };
 }
