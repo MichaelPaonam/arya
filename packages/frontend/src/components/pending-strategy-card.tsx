@@ -47,7 +47,7 @@ export function PendingStrategyCard({
       </p>
 
       <div className="mt-3 h-40">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <RadarChart data={radarData} outerRadius="78%">
             <PolarGrid stroke="var(--outline-variant)" />
             <PolarAngleAxis dataKey="axis" tick={{ fill: "var(--on-surface-variant)", fontSize: 10 }} />

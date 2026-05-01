@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useWalletMounted } from "@/hooks/use-wallet";
+import { useAccount, useDisconnect } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { ThemeToggle } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { FeatureGate } from "@/components/feature-gate";
@@ -50,19 +53,23 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const walletMounted = useWalletMounted();
   const isActive = (href: string) =>
     href === "/app" ? pathname === "/app" : pathname.startsWith(href);
 
   const [collapsed, setCollapsed] = useState(false);
   const [enableTransition, setEnableTransition] = useState(false);
 
-  useEffect(() => {
+  // useLayoutEffect fires synchronously before paint — no flash
+  useLayoutEffect(() => {
     const saved = localStorage.getItem("arya-sidebar-collapsed") === "true";
     if (saved) setCollapsed(true);
-    // Enable transitions only after localStorage state is applied
-    requestAnimationFrame(() => {
-      setEnableTransition(true);
-    });
+  }, []);
+
+  useEffect(() => {
+    // Enable transitions after the initial collapsed state is committed
+    const id = requestAnimationFrame(() => setEnableTransition(true));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const toggleCollapsed = () => {
@@ -73,10 +80,10 @@ export function AppShell({
 
   return (
     <div className="relative z-10 flex min-h-screen text-on-surface">
-      <aside className={`glass sticky top-6 z-40 my-6 ml-6 hidden h-[calc(100vh-3rem)] flex-col lg:flex ${enableTransition ? "transition-all duration-200" : ""} ${collapsed ? "w-[72px] items-center overflow-visible px-3 py-5" : "w-64 p-5"}`}>
+      <aside className={`glass sticky top-6 z-40 my-6 ml-6 hidden h-[calc(100vh-3rem)] flex-col lg:flex ${enableTransition ? "transition-all duration-200" : ""} ${collapsed ? "w-[72px] items-center px-3 py-5" : "w-64 p-5"}`}>
         <Link href="/" className="flex justify-center py-2 transition hover:opacity-80">
           {collapsed ? (
-            <Image src="/arya-logo-no-bg.png" alt="ARYA" width={28} height={28} className="dark:invert" />
+            <Image src="/arya-logo-no-bg.png" alt="ARYA" width={28} height={28} className="h-7 w-auto dark:invert" />
           ) : (
             <h1 className="text-4xl font-bold tracking-[0.25em] text-foreground">ARYA</h1>
           )}
@@ -90,7 +97,8 @@ export function AppShell({
                 key={label}
                 href={href}
                 aria-label={label}
-                className={`group relative flex items-center rounded-lg text-sm font-semibold transition ${
+                title={collapsed ? label : undefined}
+                className={`flex items-center rounded-lg text-sm font-semibold transition ${
                   collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3.5 py-2.5"
                 } ${
                   active
@@ -100,11 +108,6 @@ export function AppShell({
               >
                 <Icon className="size-4 shrink-0" strokeWidth={1.75} />
                 {!collapsed && label}
-                {collapsed && (
-                  <span className="pointer-events-none absolute left-full z-50 ml-3 hidden whitespace-nowrap rounded-lg bg-popover px-2.5 py-1.5 text-xs font-semibold text-foreground shadow-lg ring-1 ring-glass-border group-hover:block">
-                    {label}
-                  </span>
-                )}
               </Link>
             );
 
@@ -131,21 +134,11 @@ export function AppShell({
             {!collapsed && "Collapse"}
           </button>
           {!collapsed && <ModeToggle />}
-          <div className={`rounded-xl border border-border bg-[oklch(0.30_0.05_235/0.2)] ${collapsed ? "p-2.5" : "p-4"}`}>
-            {collapsed ? (
-              <div className="flex flex-col items-center gap-2">
+          <div className={`rounded-xl border border-border bg-[oklch(0.30_0.05_235/0.2)] ${collapsed ? "flex items-center justify-center p-2.5" : "p-4"}`}>
+            {walletMounted ? <WalletBox collapsed={collapsed} /> : (
+              <div className="flex items-center justify-center py-2">
                 <Wallet className="size-3.5 text-on-surface-variant" strokeWidth={1.75} />
-                <span className="size-1.5 animate-pulse rounded-full bg-tertiary" />
               </div>
-            ) : (
-              <>
-                <div className="label-eyebrow">Connected</div>
-                <div className="text-mono mt-1.5 text-xs">0x84c2…f31a</div>
-                <div className="mt-3 flex items-center gap-2 text-xs text-tertiary">
-                  <span className="size-1.5 animate-pulse rounded-full bg-tertiary" />
-                  Swarm online · 4 agents
-                </div>
-              </>
             )}
           </div>
         </div>
@@ -176,5 +169,56 @@ export function AppShell({
         {children}
       </main>
     </div>
+  );
+}
+
+function WalletBox({ collapsed }: { collapsed: boolean }) {
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { openConnectModal } = useConnectModal();
+
+  if (collapsed) {
+    return (
+      <button
+        onClick={isConnected ? undefined : openConnectModal}
+        className="flex flex-col items-center gap-2"
+      >
+        <Wallet className="size-3.5 text-on-surface-variant" strokeWidth={1.75} />
+        <span className={`size-1.5 rounded-full ${isConnected ? "animate-pulse bg-tertiary" : "bg-on-surface-variant/40"}`} />
+      </button>
+    );
+  }
+
+  if (isConnected) {
+    return (
+      <>
+        <div className="label-eyebrow">Connected</div>
+        <div className="text-mono mt-1.5 text-xs">
+          {address?.slice(0, 6)}…{address?.slice(-4)}
+        </div>
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-tertiary">
+            <span className="size-1.5 animate-pulse rounded-full bg-tertiary" />
+            Swarm online
+          </div>
+          <button
+            onClick={() => disconnect()}
+            className="text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant transition hover:text-foreground"
+          >
+            Disconnect
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <button
+      onClick={openConnectModal}
+      className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground transition hover:opacity-90"
+    >
+      <Wallet className="size-3.5" strokeWidth={1.75} />
+      Connect Wallet
+    </button>
   );
 }
