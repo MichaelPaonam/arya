@@ -54,10 +54,15 @@ export function AppShell({
     href === "/app" ? pathname === "/app" : pathname.startsWith(href);
 
   const [collapsed, setCollapsed] = useState(false);
+  const [enableTransition, setEnableTransition] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("arya-sidebar-collapsed");
-    if (stored === "true") setCollapsed(true);
+    const saved = localStorage.getItem("arya-sidebar-collapsed") === "true";
+    if (saved) setCollapsed(true);
+    // Enable transitions only after localStorage state is applied
+    requestAnimationFrame(() => {
+      setEnableTransition(true);
+    });
   }, []);
 
   const toggleCollapsed = () => {
@@ -68,7 +73,7 @@ export function AppShell({
 
   return (
     <div className="relative z-10 flex min-h-screen text-on-surface">
-      <aside className={`glass sticky top-6 my-6 ml-6 hidden h-[calc(100vh-3rem)] flex-col transition-all duration-200 lg:flex ${collapsed ? "w-[72px] items-center px-3 py-5" : "w-64 p-5"}`}>
+      <aside className={`glass sticky top-6 z-40 my-6 ml-6 hidden h-[calc(100vh-3rem)] flex-col lg:flex ${enableTransition ? "transition-all duration-200" : ""} ${collapsed ? "w-[72px] items-center overflow-visible px-3 py-5" : "w-64 p-5"}`}>
         <Link href="/" className="flex justify-center py-2 transition hover:opacity-80">
           {collapsed ? (
             <Image src="/arya-logo-no-bg.png" alt="ARYA" width={28} height={28} className="dark:invert" />
@@ -84,8 +89,8 @@ export function AppShell({
               <Link
                 key={label}
                 href={href}
-                title={collapsed ? label : undefined}
-                className={`flex items-center rounded-lg text-sm font-semibold transition ${
+                aria-label={label}
+                className={`group relative flex items-center rounded-lg text-sm font-semibold transition ${
                   collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3.5 py-2.5"
                 } ${
                   active
@@ -95,6 +100,11 @@ export function AppShell({
               >
                 <Icon className="size-4 shrink-0" strokeWidth={1.75} />
                 {!collapsed && label}
+                {collapsed && (
+                  <span className="pointer-events-none absolute left-full z-50 ml-3 hidden whitespace-nowrap rounded-lg bg-popover px-2.5 py-1.5 text-xs font-semibold text-foreground shadow-lg ring-1 ring-glass-border group-hover:block">
+                    {label}
+                  </span>
+                )}
               </Link>
             );
 
