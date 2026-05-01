@@ -1,15 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { RiskBadge } from "@/components/risk-badge";
 import { TierBadge } from "@/components/tier-badge";
+import { PipelineStepper } from "@/components/pipeline-stepper";
+import { PendingStrategyCard } from "@/components/pending-strategy-card";
+import { StrategyApprovalDialog } from "@/components/strategy-approval-dialog";
+import { usePipeline } from "@/hooks/use-pipeline";
+import { mockPipelineState } from "@/mocks/pipeline-state";
 import {
   TrendingUp,
   Activity,
   Wallet,
   Triangle,
-  CheckCircle2,
-  XCircle,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -18,10 +24,6 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  Radar,
   CartesianGrid,
 } from "recharts";
 
@@ -29,14 +31,6 @@ const apyData = [
   { d: "Mon", v: 12.4 }, { d: "Tue", v: 13.1 }, { d: "Wed", v: 12.9 },
   { d: "Thu", v: 14.2 }, { d: "Fri", v: 15.0 }, { d: "Sat", v: 14.6 },
   { d: "Sun", v: 16.3 },
-];
-
-const radar = [
-  { axis: "Liquidity", v: 88 },
-  { axis: "Volatility", v: 42 },
-  { axis: "Smart Contract", v: 76 },
-  { axis: "Counterparty", v: 64 },
-  { axis: "Oracle", v: 81 },
 ];
 
 const opportunities = [
@@ -48,6 +42,11 @@ const opportunities = [
 ];
 
 export default function CommandCenterPage() {
+  const { state, isLoading, error, trigger, reset } = usePipeline();
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const pendingProposal = state?.proposals?.[0] || mockPipelineState.proposals[0];
+
   const c = {
     secondary: "var(--secondary)",
     onSurfaceVariant: "var(--on-surface-variant)",
@@ -57,16 +56,67 @@ export default function CommandCenterPage() {
     foreground: "var(--foreground)",
   };
 
+  const handleRunScan = async () => {
+    await trigger("0x84c2000000000000000000000000000000f31a");
+    setDialogOpen(true);
+  };
+
   return (
     <AppShell
       eyebrow="Command Center"
       title="Yield Swarm Overview"
       actions={
-        <button className="hidden h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 md:inline-flex">
-          Run scan
+        <button
+          onClick={handleRunScan}
+          disabled={isLoading}
+          className="hidden h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60 md:inline-flex"
+        >
+          {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+          {isLoading ? "Scanning..." : "Run scan"}
         </button>
       }
     >
+      {/* Pipeline stepper (visible when loading or has results) */}
+      {(isLoading || state) && (
+        <section className="mt-7">
+          <PipelineStepper
+            currentPhase={state?.currentPhase || null}
+            isLoading={isLoading}
+          />
+        </section>
+      )}
+
+      {/* Strategy proposal (visible when pipeline completes with proposals) */}
+      {state?.proposals?.[0] && !isLoading && (
+        <section className="mt-5">
+          <div className="glass p-6 text-center">
+            <p className="text-sm text-tertiary font-semibold">
+              Strategy approved and queued for execution.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* No proposals message */}
+      {state && !isLoading && state.proposals.length === 0 && (
+        <section className="mt-5">
+          <div className="glass p-6 text-center">
+            <p className="text-sm text-on-surface-variant">
+              No strategies passed the confidence threshold. Try again later.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <section className="mt-5">
+          <div className="glass border-destructive/30 p-6">
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+        </section>
+      )}
+
       {/* Stat row */}
       <section className="mt-7 grid gap-4 md:grid-cols-3">
         {[
@@ -87,7 +137,7 @@ export default function CommandCenterPage() {
         ))}
       </section>
 
-      {/* Chart + Strategy detail */}
+      {/* Chart + Pending Approval */}
       <section className="mt-5 grid gap-4 lg:grid-cols-3">
         <div className="glass p-6 lg:col-span-2">
           <div className="flex items-center justify-between">
@@ -136,53 +186,16 @@ export default function CommandCenterPage() {
           </div>
         </div>
 
-        {/* Pending strategy */}
-        <div className="glass-elevated p-6">
-          <div className="flex items-center justify-between">
-            <span className="label-eyebrow">Pending Approval</span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-warning">
-              <span className="size-1.5 rounded-full bg-warning" /> review
-            </span>
-          </div>
-          <h3 className="mt-3 text-xl font-semibold leading-tight">Rebalance USDC → Pendle weETH PT</h3>
-          <p className="mt-1 text-sm text-on-surface-variant">
-            Agent <span className="text-secondary">Scout</span> proposes routing 18% of stable bucket into a fixed-yield principal token expiring Dec 26.
-          </p>
-
-          <div className="mt-5 h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radar} outerRadius="78%">
-                <PolarGrid stroke={c.outlineVariant} />
-                <PolarAngleAxis dataKey="axis" tick={{ fill: c.onSurfaceVariant, fontSize: 10 }} />
-                <Radar dataKey="v" stroke={c.secondary} fill={c.secondary} fillOpacity={0.18} strokeWidth={1.5} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="text-mono mt-5 grid grid-cols-3 gap-3 text-xs">
-            <div className="rounded-lg border border-border bg-foreground/5 p-3">
-              <div className="label-eyebrow">Est APY</div>
-              <div className="mt-1 text-base font-semibold text-foreground">21.07%</div>
-            </div>
-            <div className="rounded-lg border border-border bg-foreground/5 p-3">
-              <div className="label-eyebrow">Slippage</div>
-              <div className="mt-1 text-base font-semibold text-foreground">0.12%</div>
-            </div>
-            <div className="rounded-lg border border-border bg-foreground/5 p-3">
-              <div className="label-eyebrow">Risk</div>
-              <div className="mt-1 text-base font-semibold text-warning">Med</div>
-            </div>
-          </div>
-
-          <div className="mt-5 flex gap-2">
-            <button className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-tertiary text-sm font-semibold text-tertiary-foreground transition hover:opacity-90">
-              <CheckCircle2 className="size-4" /> Approve
-            </button>
-            <button className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-destructive/90 text-sm font-semibold text-destructive-foreground transition hover:opacity-90">
-              <XCircle className="size-4" /> Reject
-            </button>
-          </div>
-        </div>
+        <PendingStrategyCard
+          proposal={pendingProposal}
+          onApprove={() => {
+            alert("Strategy approved! (wallet integration pending)");
+            reset();
+          }}
+          onReject={() => {
+            reset();
+          }}
+        />
       </section>
 
       {/* Opportunities table */}
@@ -242,6 +255,22 @@ export default function CommandCenterPage() {
           </table>
         </div>
       </section>
+
+      {/* Strategy Approval Dialog */}
+      <StrategyApprovalDialog
+        proposal={pendingProposal}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onApprove={() => {
+          setDialogOpen(false);
+          alert("Strategy approved! (wallet integration pending)");
+          reset();
+        }}
+        onReject={() => {
+          setDialogOpen(false);
+          reset();
+        }}
+      />
     </AppShell>
   );
 }
