@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-provider";
@@ -14,6 +16,8 @@ import {
   History,
   Settings,
   Search,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import type { FeatureName } from "@/lib/feature-flags";
 
@@ -49,28 +53,48 @@ export function AppShell({
   const isActive = (href: string) =>
     href === "/app" ? pathname === "/app" : pathname.startsWith(href);
 
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("arya-sidebar-collapsed");
+    if (stored === "true") setCollapsed(true);
+  }, []);
+
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem("arya-sidebar-collapsed", String(next));
+  };
+
   return (
     <div className="relative z-10 flex min-h-screen text-on-surface">
-      <aside className="glass sticky top-6 my-6 ml-6 hidden h-[calc(100vh-3rem)] w-64 flex-col p-5 lg:flex">
+      <aside className={`glass sticky top-6 my-6 ml-6 hidden h-[calc(100vh-3rem)] flex-col transition-all duration-200 lg:flex ${collapsed ? "w-[72px] items-center px-3 py-5" : "w-64 p-5"}`}>
         <Link href="/" className="flex justify-center py-2 transition hover:opacity-80">
-          <h1 className="text-4xl font-bold tracking-[0.25em] text-foreground">ARYA</h1>
+          {collapsed ? (
+            <Image src="/arya-logo-no-bg.png" alt="ARYA" width={28} height={28} className="dark:invert" />
+          ) : (
+            <h1 className="text-4xl font-bold tracking-[0.25em] text-foreground">ARYA</h1>
+          )}
         </Link>
 
-        <nav className="mt-8 flex flex-col gap-1">
+        <nav className={`mt-8 flex flex-col gap-1 ${collapsed ? "w-full" : ""}`}>
           {nav.map(({ icon: Icon, label, href, feature }) => {
             const active = isActive(href);
             const link = (
               <Link
                 key={label}
                 href={href}
-                className={`flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition ${
+                title={collapsed ? label : undefined}
+                className={`flex items-center rounded-lg text-sm font-semibold transition ${
+                  collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3.5 py-2.5"
+                } ${
                   active
                     ? "bg-foreground/10 text-foreground"
                     : "text-on-surface-variant hover:bg-foreground/5 hover:text-foreground"
                 }`}
               >
-                <Icon className="size-4" strokeWidth={1.75} />
-                {label}
+                <Icon className="size-4 shrink-0" strokeWidth={1.75} />
+                {!collapsed && label}
               </Link>
             );
 
@@ -85,15 +109,34 @@ export function AppShell({
           })}
         </nav>
 
-        <div className="mt-auto space-y-3">
-          <ModeToggle />
-          <div className="rounded-xl border border-border bg-[oklch(0.30_0.05_235/0.2)] p-4">
-            <div className="label-eyebrow">Connected</div>
-            <div className="text-mono mt-1.5 text-xs">0x84c2…f31a</div>
-            <div className="mt-3 flex items-center gap-2 text-xs text-tertiary">
-              <span className="size-1.5 animate-pulse rounded-full bg-tertiary" />
-              Swarm online · 4 agents
-            </div>
+        <div className={`mt-auto space-y-3 ${collapsed ? "w-full" : ""}`}>
+          <button
+            onClick={toggleCollapsed}
+            className={`flex w-full items-center rounded-lg text-sm font-semibold text-on-surface-variant transition hover:bg-foreground/5 hover:text-foreground ${
+              collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3.5 py-2.5"
+            }`}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <PanelLeftOpen className="size-4 shrink-0" strokeWidth={1.75} /> : <PanelLeftClose className="size-4 shrink-0" strokeWidth={1.75} />}
+            {!collapsed && "Collapse"}
+          </button>
+          {!collapsed && <ModeToggle />}
+          <div className={`rounded-xl border border-border bg-[oklch(0.30_0.05_235/0.2)] ${collapsed ? "p-2.5" : "p-4"}`}>
+            {collapsed ? (
+              <div className="flex flex-col items-center gap-2">
+                <Wallet className="size-3.5 text-on-surface-variant" strokeWidth={1.75} />
+                <span className="size-1.5 animate-pulse rounded-full bg-tertiary" />
+              </div>
+            ) : (
+              <>
+                <div className="label-eyebrow">Connected</div>
+                <div className="text-mono mt-1.5 text-xs">0x84c2…f31a</div>
+                <div className="mt-3 flex items-center gap-2 text-xs text-tertiary">
+                  <span className="size-1.5 animate-pulse rounded-full bg-tertiary" />
+                  Swarm online · 4 agents
+                </div>
+              </>
+            )}
           </div>
         </div>
       </aside>
