@@ -86,7 +86,7 @@ All contracts are deployed on 0G Galileo Testnet (Chain ID: 16602).
 | Wallet | wagmi, viem, RainbowKit |
 | Auth | SIWE (Sign-In With Ethereum) |
 | Agent Framework | LangGraph.js (TypeScript) |
-| LLM | Anthropic Claude Haiku 4.5 (BYOK) |
+| LLM | Claude Haiku 4.5 via OpenRouter (BYOK) |
 | Contracts | Solidity, Foundry, ERC-4337 |
 | Blockchain | 0G Chain Testnet, Ethereum Sepolia |
 | Storage | 0G Storage SDK |
@@ -103,7 +103,7 @@ All contracts are deployed on 0G Galileo Testnet (Chain ID: 16602).
 All you need to use ARYA:
 
 1. **A Web3 wallet** (MetaMask, Rainbow, etc.) — connect via the dashboard
-2. **An Anthropic API key** (Standard plan only) — enter in Settings for AI-powered analysis. Get one at [console.anthropic.com](https://console.anthropic.com)
+2. **An OpenRouter API key** (Standard plan only) — enter in Settings for AI-powered analysis. Get one at [openrouter.ai](https://openrouter.ai)
 
 That's it. No accounts to create, no infrastructure to manage. Connect your wallet, optionally add your API key, and ARYA's agents start working for you.
 
@@ -118,7 +118,7 @@ Prerequisites for running ARYA locally:
 - Uniswap API key from [developers.uniswap.org](https://developers.uniswap.org)
 - KeeperHub API key (`kh_`) from [keeperhub.com](https://keeperhub.com)
 - Upstash Redis database from [upstash.com](https://upstash.com) (free tier)
-- Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
+- OpenRouter API key from [openrouter.ai](https://openrouter.ai)
 
 ```bash
 # Clone the repository
@@ -151,6 +151,12 @@ cp .env.example .env
 # Fill in DEPLOYER_PRIVATE_KEY and ORCHESTRATOR_ADDRESS (both need 0G testnet gas)
 source .env
 forge script script/Deploy.s.sol --rpc-url og_testnet --broadcast --with-gas-price 2500000000 --priority-gas-price 2500000000
+
+# AI Agents (TypeScript + vitest)
+cd ../agents
+npm install
+npx vitest run         # Run all tests (103 tests across 13 test files)
+npx tsc --noEmit       # Type-check
 
 # Start the dashboard (local dev)
 cd ../frontend
@@ -188,8 +194,16 @@ open-agent/
 │   │   ├── script/          # Deploy scripts
 │   │   ├── broadcast/       # Deployment receipts (tx hashes, addresses)
 │   │   └── lib/             # Dependencies (git submodules)
-│   ├── agents/              # TypeScript agent implementations
-│   └── frontend/            # Next.js dashboard
+│   ├── agents/              # TypeScript agent implementations (103 tests)
+│   │   └── src/
+│   │       ├── types/       # Zod schemas + TypeScript types
+│   │       ├── tools/       # API wrappers (DefiLlama, Uniswap, KeeperHub, 0G, wallet)
+│   │       ├── agents/      # Scout, Risk, Orchestrator, Executor
+│   │       ├── debate/      # 3-tier debate protocol (Fast/Standard/Deep)
+│   │       ├── storage/     # Redis client + 0G memory persistence
+│   │       ├── utils/       # LLM client (OpenRouter), IL math
+│   │       └── graph/       # Pipeline orchestration (runPipeline)
+│   └── frontend/            # Next.js dashboard (not started)
 ├── .env.example
 └── README.md
 ```
@@ -199,11 +213,13 @@ open-agent/
 1. **User connects wallet** via RainbowKit and signs in with SIWE (Sign-In With Ethereum)
 2. **Scout Agent** scans DeFi protocols and discovers yield opportunities
 3. **Risk Agent** evaluates each opportunity with a multi-factor risk score
-4. **Orchestrator** packages the analysis into a strategy proposal
-5. **Dashboard** presents the proposal to the user with risk visualizations
-6. **User approves or rejects** - the `StrategyVault` contract enforces this gate on-chain
-7. **Executor Agent** builds the swap transaction via Uniswap API and submits it
-8. **KeeperHub** monitors the position and triggers alerts if conditions change
+4. **Agent Debate** — Risk challenges Scout's assumptions (3 tiers: Fast, Standard, Deep)
+5. **Orchestrator** packages the analysis into a strategy proposal with confidence score
+6. **Dashboard** presents the proposal to the user with risk visualizations
+7. **User approves or rejects** — the `StrategyVault` contract enforces this gate on-chain
+8. **Executor Agent** builds the swap transaction via Uniswap API and submits it
+9. **KeeperHub** monitors the position and triggers alerts if conditions change
+10. **Outcome recorded** on-chain — agent reputation updates based on strategy performance
 
 ## License
 
