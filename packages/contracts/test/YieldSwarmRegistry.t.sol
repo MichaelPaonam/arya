@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {YieldSwarmRegistry} from "../src/YieldSwarmRegistry.sol";
+import {IERC7857Authorize} from "../src/interfaces/IERC7857Authorize.sol";
 import {IntelligentData} from "../src/interfaces/IERC7857Metadata.sol";
 
 contract YieldSwarmRegistryTest is Test {
@@ -256,5 +257,122 @@ contract YieldSwarmRegistryTest is Test {
 
     function test_Symbol_ReturnsCorrect() public view {
         assertEq(registry.symbol(), "ARYA");
+    }
+
+    // ============ requestSwarm ============
+
+    function test_RequestSwarm_MintsAllFourAgents() public {
+        vm.prank(alice);
+        uint256[4] memory tokenIds = registry.requestSwarm();
+
+        YieldSwarmRegistry.AgentInfo[] memory members = registry.getSwarmMembers(alice);
+        assertEq(members.length, 4);
+        assertEq(members[0].agentType, "scout");
+        assertEq(members[1].agentType, "risk");
+        assertEq(members[2].agentType, "orchestrator");
+        assertEq(members[3].agentType, "executor");
+
+        for (uint256 i; i < 4; i++) {
+            assertEq(tokenIds[i], i + 1);
+        }
+    }
+
+    function test_RequestSwarm_NFTsOwnedByContractOwner() public {
+        vm.prank(alice);
+        uint256[4] memory tokenIds = registry.requestSwarm();
+
+        for (uint256 i; i < 4; i++) {
+            assertEq(registry.ownerOf(tokenIds[i]), owner);
+        }
+    }
+
+    function test_RequestSwarm_UserIsAuthorizedOperator() public {
+        vm.prank(alice);
+        uint256[4] memory tokenIds = registry.requestSwarm();
+
+        for (uint256 i; i < 4; i++) {
+            address[] memory authorized = registry.authorizedUsersOf(tokenIds[i]);
+            assertEq(authorized.length, 1);
+            assertEq(authorized[0], alice);
+        }
+    }
+
+    function test_RequestSwarm_RevertsIfAlreadyProvisioned() public {
+        vm.prank(alice);
+        registry.requestSwarm();
+
+        vm.prank(alice);
+        vm.expectRevert(YieldSwarmRegistry.SwarmAlreadyProvisioned.selector);
+        registry.requestSwarm();
+    }
+
+    function test_RequestSwarm_EmitsAgentRegisteredForEach() public {
+        vm.prank(alice);
+
+        vm.expectEmit(true, false, true, true);
+        emit YieldSwarmRegistry.AgentRegistered(1, "scout", alice);
+        vm.expectEmit(true, false, true, true);
+        emit YieldSwarmRegistry.AgentRegistered(2, "risk", alice);
+        vm.expectEmit(true, false, true, true);
+        emit YieldSwarmRegistry.AgentRegistered(3, "orchestrator", alice);
+        vm.expectEmit(true, false, true, true);
+        emit YieldSwarmRegistry.AgentRegistered(4, "executor", alice);
+
+        registry.requestSwarm();
+    }
+
+    function test_RequestSwarm_EmitsAuthorizationForEach() public {
+        vm.prank(alice);
+
+        vm.expectEmit(true, true, true, true);
+        emit IERC7857Authorize.Authorization(owner, alice, 1);
+        vm.expectEmit(true, true, true, true);
+        emit IERC7857Authorize.Authorization(owner, alice, 2);
+        vm.expectEmit(true, true, true, true);
+        emit IERC7857Authorize.Authorization(owner, alice, 3);
+        vm.expectEmit(true, true, true, true);
+        emit IERC7857Authorize.Authorization(owner, alice, 4);
+
+        registry.requestSwarm();
+    }
+
+    function test_RequestSwarm_ReturnsCorrectTokenIds() public {
+        // Register one agent first to offset token IDs
+        registry.registerAgent("scout", "ipfs://pre", bob);
+
+        vm.prank(alice);
+        uint256[4] memory tokenIds = registry.requestSwarm();
+
+        assertEq(tokenIds[0], 2);
+        assertEq(tokenIds[1], 3);
+        assertEq(tokenIds[2], 4);
+        assertEq(tokenIds[3], 5);
+    }
+
+    function test_RequestSwarm_UserAppearsInGetSwarmMembers() public {
+        vm.prank(alice);
+        registry.requestSwarm();
+
+        YieldSwarmRegistry.AgentInfo[] memory members = registry.getSwarmMembers(alice);
+        assertEq(members.length, 4);
+        for (uint256 i; i < 4; i++) {
+            assertEq(members[i].user, alice);
+        }
+    }
+
+    function test_RequestSwarm_MultipleUsersSeparateSwarms() public {
+        vm.prank(alice);
+        registry.requestSwarm();
+
+        vm.prank(bob);
+        registry.requestSwarm();
+
+        YieldSwarmRegistry.AgentInfo[] memory aliceSwarm = registry.getSwarmMembers(alice);
+        YieldSwarmRegistry.AgentInfo[] memory bobSwarm = registry.getSwarmMembers(bob);
+
+        assertEq(aliceSwarm.length, 4);
+        assertEq(bobSwarm.length, 4);
+        // Token IDs should not overlap
+        assertNotEq(aliceSwarm[0].tokenId, bobSwarm[0].tokenId);
     }
 }

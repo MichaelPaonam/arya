@@ -19,6 +19,7 @@ contract YieldSwarmRegistry is ERC721, Ownable, IERC7857Metadata, IERC7857Author
     error AgentNotFound();
     error NotAgentOwner();
     error InvalidDelegate();
+    error SwarmAlreadyProvisioned();
 
     event AgentRegistered(uint256 indexed tokenId, string agentType, address indexed user);
     event DecisionRecorded(uint256 indexed agentId, bytes32 strategyHash, uint256 timestamp);
@@ -56,6 +57,33 @@ contract YieldSwarmRegistry is ERC721, Ownable, IERC7857Metadata, IERC7857Author
 
         emit AgentRegistered(tokenId, agentType, user);
         return tokenId;
+    }
+
+    function requestSwarm() external returns (uint256[4] memory tokenIds) {
+        if (_userAgents[msg.sender].length > 0) revert SwarmAlreadyProvisioned();
+
+        string[4] memory types = ["scout", "risk", "orchestrator", "executor"];
+
+        for (uint256 i; i < 4; i++) {
+            uint256 tokenId = ++_nextTokenId;
+            _mint(owner(), tokenId);
+
+            _agents[tokenId] = AgentInfo({
+                tokenId: tokenId,
+                agentType: types[i],
+                metadataURI: "",
+                registeredAt: block.timestamp,
+                user: msg.sender
+            });
+            _userAgents[msg.sender].push(tokenId);
+            tokenIds[i] = tokenId;
+
+            _authorizedUsers[tokenId].push(msg.sender);
+            _hasAuthorization[tokenId][msg.sender] = true;
+
+            emit AgentRegistered(tokenId, types[i], msg.sender);
+            emit Authorization(owner(), msg.sender, tokenId);
+        }
     }
 
     // ─── Queries ─────────────────────────────────────────────────────────

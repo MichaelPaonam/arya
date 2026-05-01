@@ -1,15 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@arya/agents"],
-  serverExternalPackages: [
-    "@0gfoundation/0g-ts-sdk",
-    "ethers",
-    "@upstash/redis",
-    "@langchain/langgraph",
-    "@langchain/openai",
-    "@langchain/core",
-    "openai",
-  ],
+  experimental: {
+    serverComponentsExternalPackages: [
+      "@0gfoundation/0g-ts-sdk",
+      "ethers",
+      "@upstash/redis",
+      "@langchain/langgraph",
+      "@langchain/openai",
+      "@langchain/core",
+      "openai",
+    ],
+  },
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
