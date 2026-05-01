@@ -16,6 +16,10 @@ vi.mock("@/hooks/use-app-mode", () => ({
   AppModeProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+vi.mock("@/hooks/use-wallet", () => ({
+  useWalletMounted: () => false,
+}));
+
 describe("HistoryPage", () => {
   it("renders page title", () => {
     render(<HistoryPage />);

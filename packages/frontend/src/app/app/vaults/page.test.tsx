@@ -16,6 +16,10 @@ vi.mock("@/hooks/use-app-mode", () => ({
   AppModeProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+vi.mock("@/hooks/use-wallet", () => ({
+  useWalletMounted: () => false,
+}));
+
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   AreaChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

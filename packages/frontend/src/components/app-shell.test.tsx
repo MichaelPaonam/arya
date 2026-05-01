@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import React from "react";
 import { render, screen } from "@testing-library/react";
 import { AppShell } from "./app-shell";
 import { AppModeProvider } from "@/hooks/use-app-mode";
@@ -12,6 +13,19 @@ vi.mock("next/link", () => ({
   default: ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
+}));
+
+vi.mock("@/hooks/use-wallet", () => ({
+  useWalletMounted: () => false,
+}));
+
+vi.mock("wagmi", () => ({
+  useAccount: () => ({ address: undefined, isConnected: false }),
+  useDisconnect: () => ({ disconnect: () => {} }),
+}));
+
+vi.mock("@rainbow-me/rainbowkit", () => ({
+  useConnectModal: () => ({ openConnectModal: () => {} }),
 }));
 
 function renderShell(props?: Partial<React.ComponentProps<typeof AppShell>>) {

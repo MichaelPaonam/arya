@@ -16,6 +16,10 @@ vi.mock("@/hooks/use-app-mode", () => ({
   AppModeProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+vi.mock("@/hooks/use-wallet", () => ({
+  useWalletMounted: () => false,
+}));
+
 describe("SettingsPage", () => {
   it("renders page title", () => {
     render(<SettingsPage />);
@@ -52,5 +56,21 @@ describe("SettingsPage", () => {
     render(<SettingsPage />);
     expect(screen.getByText("Danger Zone")).toBeInTheDocument();
     expect(screen.getByText("Pause swarm")).toBeInTheDocument();
+  });
+
+  it("renders LLM configuration card", () => {
+    render(<SettingsPage />);
+    expect(screen.getByText("LLM Configuration")).toBeInTheDocument();
+  });
+
+  it("renders provider options", () => {
+    render(<SettingsPage />);
+    expect(screen.getByText("Anthropic")).toBeInTheDocument();
+    expect(screen.getByText("OpenRouter")).toBeInTheDocument();
+  });
+
+  it("renders model selector", () => {
+    render(<SettingsPage />);
+    expect(screen.getByText("Model")).toBeInTheDocument();
   });
 });
