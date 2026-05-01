@@ -1,4 +1,13 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      "pino-pretty": false,
+      encoding: false,
+    };
+    return config;
+  },
+};
 
 export default nextConfig;
