@@ -71,7 +71,7 @@ export async function executorAgent(input: ExecutorAgentInput): Promise<Executor
 
     if (tokenBalance) {
       const balance = BigInt(tokenBalance.balance);
-      const minRequired = proposal.actions[0]?.minAmountOut ?? 0n;
+      const minRequired = proposal.actions[0]?.minAmountOut ?? BigInt(0);
       if (balance < minRequired) {
         return {
           strategyId: proposal.id,
@@ -105,7 +105,7 @@ export async function executorAgent(input: ExecutorAgentInput): Promise<Executor
   // 4. Check token approval
   const approval = await checkApproval({
     token: proposal.opportunity.tokenPair[0]!,
-    amount: (proposal.actions[0]?.minAmountOut ?? 0n).toString(),
+    amount: (proposal.actions[0]?.minAmountOut ?? BigInt(0)).toString(),
     walletAddress,
     chainId,
   });
@@ -118,7 +118,7 @@ export async function executorAgent(input: ExecutorAgentInput): Promise<Executor
     swapTx = await buildSwapCalldata({
       tokenIn: proposal.opportunity.tokenPair[0]!,
       tokenOut: proposal.opportunity.tokenPair[1]!,
-      amount: (proposal.actions[0]?.minAmountOut ?? 0n).toString(),
+      amount: (proposal.actions[0]?.minAmountOut ?? BigInt(0)).toString(),
       chainId,
       slippageTolerance: 0.5,
       maxFeePerGas: gasConfig?.maxFeePerGas,

@@ -75,7 +75,7 @@ export async function orchestratorAgent(input: OrchestratorAgentInput): Promise<
     actions: [
       {
         target: routerAddress,
-        value: 0n,
+        value: BigInt(0),
         calldata: "0x",
         minAmountOut: BigInt(quote.amountOut),
       },
