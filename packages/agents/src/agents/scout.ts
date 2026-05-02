@@ -9,6 +9,8 @@ export interface ScoutAgentInput {
   memoryRootHash?: string;
   poolFilter?: "all" | "stable" | "bluechip";
   poolLimit?: number;
+  uniswapOnly?: boolean;
+  chainId?: number;
 }
 
 export interface ScoutAgentOutput {
@@ -37,6 +39,8 @@ export async function scoutAgent(input: ScoutAgentInput): Promise<ScoutAgentOutp
       limit: input.poolLimit ?? 3,
       maxApy: filter === "stable" ? 30 : filter === "bluechip" ? 50 : undefined,
       stablecoinOnly: filter === "stable",
+      uniswapOnly: input.uniswapOnly ?? true,
+      chainId: input.chainId ?? 1,
     });
   } catch (err) {
     return {

@@ -85,6 +85,7 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineState
       memoryRootHash,
       poolFilter: config.poolFilter,
       poolLimit: config.poolLimit,
+      chainId: config.chainId,
     });
     emit({ type: "api_call", service: "defillama", action: "Fetching top DeFi pools", status: "success" });
     emit({ type: "api_call", service: "llm", action: "Analyzing pool opportunities", status: "success" });

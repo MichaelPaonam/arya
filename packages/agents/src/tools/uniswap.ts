@@ -37,6 +37,14 @@ const TOKEN_ADDRESSES: Record<string, Record<number, string>> = {
   "SUI": {},
 };
 
+export function getSupportedTokenSymbols(chainId: number): Set<string> {
+  const symbols = new Set<string>();
+  for (const [symbol, chains] of Object.entries(TOKEN_ADDRESSES)) {
+    if (chains[chainId]) symbols.add(symbol.toUpperCase());
+  }
+  return symbols;
+}
+
 function resolveTokenAddress(symbol: string, chainId: number): string | null {
   if (symbol.startsWith("0x") && symbol.length === 42) return symbol;
   const upper = symbol.toUpperCase();
@@ -190,20 +198,23 @@ export async function getSwapQuote(params: SwapQuoteParams): Promise<SwapQuote> 
     swapper,
   });
 
-  const parsed = QuoteResponseSchema.parse(json);
+  const parsed = QuoteResponseSchema.safeParse(json);
+  if (!parsed.success) {
+    throw new Error(`no valid quote returned for ${params.tokenIn}/${params.tokenOut}`);
+  }
 
-  if (params.maxPriceImpact !== undefined && parsed.quote.priceImpact > params.maxPriceImpact) {
-    throw new Error(`Price impact ${parsed.quote.priceImpact}% exceeds max ${params.maxPriceImpact}%`);
+  if (params.maxPriceImpact !== undefined && parsed.data.quote.priceImpact > params.maxPriceImpact) {
+    throw new Error(`Price impact ${parsed.data.quote.priceImpact}% exceeds max ${params.maxPriceImpact}%`);
   }
 
   return {
-    amountOut: parsed.quote.output.amount,
-    gasEstimate: parsed.quote.gasUseEstimate,
-    route: parsed.quote.route.flat().map((hop) => ({
+    amountOut: parsed.data.quote.output.amount,
+    gasEstimate: parsed.data.quote.gasUseEstimate,
+    route: parsed.data.quote.route.flat().map((hop) => ({
       protocol: hop.type,
       percent: 100,
     })),
-    priceImpact: parsed.quote.priceImpact,
+    priceImpact: parsed.data.quote.priceImpact,
   };
 }
 
