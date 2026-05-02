@@ -6,6 +6,7 @@ import { TierBadge } from "@/components/tier-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PlaceholderStat } from "@/components/ui/placeholder-stat";
 import { useAppMode } from "@/hooks/use-app-mode";
+import { useScanResults } from "@/hooks/use-scan-results";
 import { Triangle, Filter, ArrowUpDown, Sparkles } from "lucide-react";
 
 const opps = [
@@ -25,10 +26,57 @@ const categories = ["All", "Lending", "Fixed Yield", "Stable LP", "Volatile LP",
 const chains = ["All chains", "Ethereum", "Arbitrum", "Base", "Optimism"];
 const risks = ["Any risk", "Low only", "Low + Medium", "All risks"];
 
+function riskLevel(score: number): "low" | "medium" | "high" {
+  if (score <= 3) return "low";
+  if (score <= 6) return "medium";
+  return "high";
+}
+
+function formatTvl(tvl: number): string {
+  if (tvl >= 1e9) return `$${(tvl / 1e9).toFixed(1)}B`;
+  if (tvl >= 1e6) return `$${(tvl / 1e6).toFixed(1)}M`;
+  if (tvl >= 1e3) return `$${(tvl / 1e3).toFixed(0)}K`;
+  return `$${tvl.toFixed(0)}`;
+}
+
 export default function OpportunitiesPage() {
   const { mode } = useAppMode();
+  const scanData = useScanResults();
 
   if (mode === "hackathon") {
+    if (!scanData || scanData.opportunities.length === 0) {
+      return (
+        <AppShell
+          eyebrow="Live Feed"
+          title="Yield Opportunities"
+          actions={
+            <button className="hidden h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 md:inline-flex">
+              <Sparkles className="size-4" /> Run scan
+            </button>
+          }
+        >
+          <section className="mt-7 grid gap-4 md:grid-cols-4">
+            <PlaceholderStat label="Best APY Found" hint="Across all pools" />
+            <PlaceholderStat label="Pools Scanned" hint="DeFi protocols" />
+            <PlaceholderStat label="Risk-Adjusted Score" hint="Top opportunity" />
+            <PlaceholderStat label="Time to Next Scan" hint="Auto-refresh" />
+          </section>
+          <section className="mt-5">
+            <EmptyState
+              icon={Sparkles}
+              eyebrow="Discovery"
+              title="No opportunities surfaced yet"
+              description="The yield swarm will surface the best risk-adjusted opportunities once you initiate your first scan."
+              primaryAction={{ label: "Run scan", href: "/app" }}
+            />
+          </section>
+        </AppShell>
+      );
+    }
+
+    const bestApy = Math.max(...scanData.opportunities.map((o) => o.estimatedAPY));
+    const riskMap = new Map(scanData.riskAssessments.map((r) => [r.opportunityId, r]));
+
     return (
       <AppShell
         eyebrow="Live Feed"
@@ -40,19 +88,57 @@ export default function OpportunitiesPage() {
         }
       >
         <section className="mt-7 grid gap-4 md:grid-cols-4">
-          <PlaceholderStat label="Best APY Found" hint="Across all pools" />
-          <PlaceholderStat label="Pools Scanned" hint="DeFi protocols" />
-          <PlaceholderStat label="Risk-Adjusted Score" hint="Top opportunity" />
-          <PlaceholderStat label="Time to Next Scan" hint="Auto-refresh" />
+          {[
+            { l: "Best APY Found", v: `${bestApy.toFixed(1)}%` },
+            { l: "Pools Scanned", v: String(scanData.opportunities.length) },
+            { l: "Risk Assessed", v: String(scanData.riskAssessments.length) },
+            { l: "Strategies Proposed", v: String(scanData.proposals.length) },
+          ].map((s) => (
+            <div key={s.l} className="glass-stat p-5">
+              <div className="label-eyebrow">{s.l}</div>
+              <div className="mt-2 text-xl font-semibold tracking-tight">{s.v}</div>
+            </div>
+          ))}
         </section>
-        <section className="mt-5">
-          <EmptyState
-            icon={Sparkles}
-            eyebrow="Discovery"
-            title="No opportunities surfaced yet"
-            description="The yield swarm will surface the best risk-adjusted opportunities once you initiate your first scan."
-            primaryAction={{ label: "Run scan", href: "/app" }}
-          />
+
+        <section className="glass mt-5 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-y border-border text-left">
+                  {["Protocol", "Pair", "Category", "APY", "TVL", "Risk"].map((h) => (
+                    <th key={h} className="label-eyebrow whitespace-nowrap px-4 py-3 font-semibold">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {scanData.opportunities.map((o) => {
+                  const risk = riskMap.get(o.id);
+                  return (
+                    <tr key={o.id} className="border-b border-border/50 transition hover:bg-foreground/5">
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="grid size-8 place-items-center rounded-lg bg-secondary/10 text-secondary">
+                            <Triangle className="size-3.5 fill-current" strokeWidth={0} />
+                          </div>
+                          <div className="font-semibold">{o.protocol}</div>
+                        </div>
+                      </td>
+                      <td className="text-mono px-4 py-4 font-medium">{o.tokenPair.join(" / ")}</td>
+                      <td className="px-4 py-4 text-on-surface-variant">{o.category}</td>
+                      <td className="text-mono px-4 py-4 font-semibold text-secondary">{o.estimatedAPY.toFixed(2)}%</td>
+                      <td className="text-mono px-4 py-4 text-on-surface-variant">{formatTvl(o.tvl)}</td>
+                      <td className="px-4 py-4">
+                        {risk ? <RiskBadge level={riskLevel(risk.riskScore)} /> : <span className="text-xs text-on-surface-variant">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </section>
       </AppShell>
     );
