@@ -112,6 +112,7 @@ export function usePipeline(): UsePipelineReturn {
               case "complete":
                 setState(event.state);
                 setCurrentPhase("complete");
+                localStorage.setItem("arya-last-scan", JSON.stringify(event.state));
                 break;
             }
           } catch {
@@ -153,6 +154,15 @@ export function usePipeline(): UsePipelineReturn {
       const { results } = await res.json() as { results: ExecutionResult[] };
       setExecutionResults(results);
       setProposals([]);
+
+      const prev = localStorage.getItem("arya-last-scan");
+      if (prev) {
+        try {
+          const stored = JSON.parse(prev);
+          stored.executionResults = results;
+          localStorage.setItem("arya-last-scan", JSON.stringify(stored));
+        } catch { /* ignore */ }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Network error");
     } finally {
