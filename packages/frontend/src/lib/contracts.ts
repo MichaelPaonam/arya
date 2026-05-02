@@ -50,7 +50,7 @@ export const YIELD_SWARM_REGISTRY = {
 } as const;
 
 export const SMART_ACCOUNT_FACTORY = {
-  address: "0x3445a25b9b07a302766fb99406f088f544094c7e" as `0x${string}`,
+  address: "0xBb85872CfA2dFa6DB73785d6731241A0653596f6" as `0x${string}`,
   abi: [
     {
       name: "createAccount",
