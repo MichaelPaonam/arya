@@ -55,7 +55,7 @@ export async function executorAgent(input: ExecutorAgentInput): Promise<Executio
       poolAddress: proposal.opportunity.pool,
       userWallet: walletAddress,
       chainId,
-      positionTokenId: input.positionTokenId ?? "0",
+      positionTokenId: input.positionTokenId ?? "1060000",
       ilThreshold: 5.0,
       valueDropThreshold: 10.0,
       tokenPair: [tokenIn, tokenOut],
