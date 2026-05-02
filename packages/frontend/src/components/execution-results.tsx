@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ExternalLink, CheckCircle2, XCircle, Clock } from "lucide-react";
 import type { ExecutionResult, StrategyProposal } from "@/types/pipeline";
 
@@ -73,6 +74,7 @@ export function ExecutionResults({ results, proposals }: ExecutionResultsProps) 
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-lg bg-foreground/5 px-3 py-1.5 text-xs font-medium text-secondary transition hover:bg-foreground/10"
                 >
+                  <Image src="/uniswap.svg" alt="" width={14} height={14} />
                   <span className="font-mono">{truncateHash(result.txHash)}</span>
                   <ExternalLink className="size-3" />
                 </a>
@@ -85,6 +87,7 @@ export function ExecutionResults({ results, proposals }: ExecutionResultsProps) 
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-lg bg-foreground/5 px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-foreground/10"
                 >
+                  <Image src="/kh.png" alt="" width={14} height={14} />
                   KeeperHub
                   <ExternalLink className="size-3" />
                 </a>

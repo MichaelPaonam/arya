@@ -141,6 +141,16 @@ export function AppShell({
               </div>
             )}
           </div>
+          {!collapsed && (
+            <div className="rounded-xl border border-border/50 px-3 py-2.5">
+              <div className="label-eyebrow text-[9px] text-center mb-2">Powered by</div>
+              <div className="flex items-center justify-center gap-3">
+                <Image src="/0g.png" alt="0G" width={20} height={20} className="opacity-70 hover:opacity-100 transition dark:invert" />
+                <Image src="/kh.png" alt="KeeperHub" width={20} height={20} className="opacity-70 hover:opacity-100 transition" />
+                <Image src="/uniswap.svg" alt="Uniswap" width={20} height={20} className="opacity-70 hover:opacity-100 transition" />
+              </div>
+            </div>
+          )}
         </div>
       </aside>
 

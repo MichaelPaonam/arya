@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { AppShell } from "@/components/app-shell";
 import { Wallet, ShieldCheck, Bell, Zap, Key, Copy, Brain } from "lucide-react";
 
@@ -31,6 +32,10 @@ export default function SettingsPage() {
         <RiskLimitsCard />
 
         <Card icon={Bell} title="Notifications" desc="Where the swarm pings you for approval.">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-foreground/5 px-3.5 py-2">
+            <Image src="/kh.png" alt="KeeperHub" width={16} height={16} />
+            <span className="text-xs font-semibold text-on-surface-variant">Monitored by KeeperHub</span>
+          </div>
           <Toggle label="Browser push" enabled />
           <Toggle label="Email digest · daily" enabled />
           <Toggle label="Telegram bot" />
@@ -41,6 +46,10 @@ export default function SettingsPage() {
         </Card>
 
         <Card icon={Zap} title="Execution" desc="How transactions reach the chain.">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-foreground/5 px-3.5 py-2">
+            <Image src="/uniswap.svg" alt="Uniswap" width={16} height={16} />
+            <span className="text-xs font-semibold text-on-surface-variant">Powered by Uniswap Trading API</span>
+          </div>
           <Field label="Default slippage"><span className="text-mono text-sm font-semibold">0.30%</span></Field>
           <Field label="MEV protection"><span className="text-sm font-semibold">Flashbots Protect</span></Field>
           <Field label="Gas strategy"><span className="text-sm font-semibold">Fast (P75)</span></Field>
@@ -48,6 +57,10 @@ export default function SettingsPage() {
         </Card>
 
         <Card icon={Key} title="Session Keys" desc="Scoped permissions issued to agents.">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-foreground/5 px-3.5 py-2">
+            <Image src="/0g.png" alt="0G" width={16} height={16} className="dark:invert" />
+            <span className="text-xs font-semibold text-on-surface-variant">Stored on 0G Chain</span>
+          </div>
           <KeyRow agent="Atlas" scope="USDC, DAI · max $250K" expiry="6d" />
           <KeyRow agent="Helios" scope="Pendle PT · max $100K" expiry="3d" />
           <KeyRow agent="Vega" scope="LSTs · max $200K" expiry="6d" />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 import type { PipelineEvent, PipelinePhase } from "@/types/pipeline";
 
 const PHASE_CONFIG: Record<string, { icon: string; label: string }> = {
@@ -18,6 +19,19 @@ const SERVICE_LABELS: Record<string, string> = {
   "on-chain": "On-chain",
   llm: "LLM",
 };
+
+const SERVICE_ICONS: Record<string, string> = {
+  uniswap: "/uniswap.svg",
+  "0g-storage": "/0g.png",
+  keeperhub: "/kh.png",
+  "on-chain": "/0g.png",
+};
+
+function ServiceIcon({ service }: { service: string }) {
+  const src = SERVICE_ICONS[service];
+  if (!src) return null;
+  return <Image src={src} alt="" width={12} height={12} className={service === "0g-storage" || service === "on-chain" ? "dark:invert" : ""} />;
+}
 
 function StatusIcon({ status }: { status: "started" | "success" | "failed" }) {
   if (status === "started") {
@@ -83,7 +97,7 @@ function EventLine({ event, events }: { event: PipelineEvent; events: PipelineEv
       return (
         <div className="text-on-surface-variant">
           <div className="flex items-center gap-2">
-            <span className="text-on-surface-variant/60">↗</span>
+            <ServiceIcon service={event.service} />
             <span className="text-on-surface-variant/80">{SERVICE_LABELS[event.service] ?? event.service}</span>
             <span className="text-on-surface-variant/60">·</span>
             <span className="break-all">{event.action}</span>
@@ -137,7 +151,7 @@ function EventLine({ event, events }: { event: PipelineEvent; events: PipelineEv
       return (
         <div className="text-on-surface-variant rounded-lg border border-border/50 bg-foreground/5 px-3 py-2 mt-1">
           <div className="flex items-center gap-1.5 text-secondary text-[11px] font-semibold mb-1">
-            <span>◈</span> 0G Storage Receipt
+            <Image src="/0g.png" alt="" width={12} height={12} className="dark:invert" /> 0G Storage Receipt
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
             <span className="text-on-surface-variant/70">Root Hash</span>
