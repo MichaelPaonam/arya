@@ -65,11 +65,15 @@ export default function RiskPage() {
     const avgIl = assessments.reduce((s, a) => s + a.impermanentLoss, 0) / assessments.length;
     const highAlerts = assessments.filter((a) => a.riskScore >= 7);
 
+    const contractRiskScore = assessments.reduce((s, a) => s + (a.contractRisk === "high" ? 90 : a.contractRisk === "medium" ? 50 : 20), 0) / assessments.length;
+    const liquidityRiskScore = assessments.reduce((s, a) => s + (a.liquidityRisk === "high" ? 90 : a.liquidityRisk === "medium" ? 50 : 20), 0) / assessments.length;
+    const correlationScore = assessments.reduce((s, a) => s + a.correlationWithPortfolio * 100, 0) / assessments.length;
+
     const radarData = [
-      { axis: "Impermanent Loss", v: Math.round(avgIl * 10) },
-      { axis: "Contract Risk", v: Math.round(assessments.filter((a) => a.contractRisk === "high").length / assessments.length * 100) },
-      { axis: "Liquidity Risk", v: Math.round(assessments.filter((a) => a.liquidityRisk === "high").length / assessments.length * 100) },
-      { axis: "Correlation", v: Math.round(assessments.reduce((s, a) => s + a.correlationWithPortfolio, 0) / assessments.length * 100) },
+      { axis: "Impermanent Loss", v: Math.round(Math.min(avgIl * 10, 100)) },
+      { axis: "Contract Risk", v: Math.round(contractRiskScore) },
+      { axis: "Liquidity Risk", v: Math.round(liquidityRiskScore) },
+      { axis: "Correlation", v: Math.round(correlationScore) },
       { axis: "Score", v: Math.round(avgRisk * 10) },
     ];
 
@@ -85,13 +89,13 @@ export default function RiskPage() {
         <section className="mt-5 grid gap-4 lg:grid-cols-3">
           <div className="glass p-6 lg:col-span-2">
             <div className="label-eyebrow">Decomposition</div>
-            <h3 className="mt-1 text-lg font-semibold">Risk signature from scan</h3>
+            <h3 className="mt-1 text-lg font-semibold">Five-vector risk signature</h3>
             <div className="mt-4 h-80">
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <RadarChart data={radarData} outerRadius="78%">
                   <PolarGrid stroke="var(--outline-variant)" />
                   <PolarAngleAxis dataKey="axis" tick={{ fill: "var(--on-surface-variant)", fontSize: 11 }} />
-                  <Radar dataKey="v" stroke="var(--secondary)" fill="var(--secondary)" fillOpacity={0.18} strokeWidth={1.5} />
+                  <Radar dataKey="v" stroke="var(--secondary)" fill="var(--secondary)" fillOpacity={0.15} strokeWidth={1.5} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
@@ -117,35 +121,44 @@ export default function RiskPage() {
           </div>
         </section>
 
-        {highAlerts.length > 0 && (
-          <section className="glass mt-5 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-5">
-              <div>
-                <div className="label-eyebrow">Alerts</div>
-                <h3 className="mt-1 text-lg font-semibold">High-risk opportunities</h3>
-              </div>
+        <section className="glass mt-5 overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-5">
+            <div>
+              <div className="label-eyebrow">Alerts</div>
+              <h3 className="mt-1 text-lg font-semibold">High-risk opportunities</h3>
             </div>
-            <ul className="border-t border-border">
-              {highAlerts.map((a) => {
+            <span className="inline-flex items-center gap-1.5 text-xs text-on-surface-variant">
+              {highAlerts.length} alert{highAlerts.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <ul className="border-t border-border">
+            {assessments
+              .sort((a, b) => b.riskScore - a.riskScore)
+              .map((a) => {
                 const opp = scanData.opportunities.find((o) => o.id === a.opportunityId);
+                const level = a.riskScore >= 7 ? "high" as const : a.riskScore >= 4 ? "medium" as const : "low" as const;
+                const summary = a.reasoning.length > 180 ? a.reasoning.slice(0, 180).replace(/\s+\S*$/, "") + "…" : a.reasoning;
                 return (
-                  <li key={a.opportunityId} className="flex items-start gap-4 border-b border-border/50 px-6 py-4">
-                    <div className="mt-0.5 grid size-9 place-items-center rounded-lg bg-destructive/15 text-destructive">
+                  <li key={a.opportunityId} className="flex items-start gap-4 border-b border-border/50 px-6 py-4 transition hover:bg-foreground/5">
+                    <div className={`mt-0.5 grid size-9 place-items-center rounded-lg ${
+                      level === "high" ? "bg-destructive/15 text-destructive" :
+                      level === "medium" ? "bg-warning/15 text-warning" : "bg-tertiary/15 text-tertiary"
+                    }`}>
                       <ShieldAlert className="size-4" strokeWidth={1.75} />
                     </div>
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold">{opp?.tokenPair.join("/") ?? "Unknown"} — Score {a.riskScore}/10</span>
-                        <RiskBadge level="high" />
+                        <RiskBadge level={level} />
+                        <span className="text-xs text-on-surface-variant">· Risk Agent</span>
                       </div>
-                      <p className="mt-1 text-sm text-on-surface-variant">{a.reasoning}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">{summary}</p>
                     </div>
                   </li>
                 );
               })}
-            </ul>
-          </section>
-        )}
+          </ul>
+        </section>
       </AppShell>
     );
   }
