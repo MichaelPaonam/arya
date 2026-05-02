@@ -122,6 +122,9 @@ function customizeNodes(nodes: WorkflowNode[], params: CreateWorkflowFromTemplat
   const tokens = resolvePoolTokens(params.tokenPair, params.poolAddress);
   const ilThreshold = params.ilThreshold ?? 5;
 
+  const poolNode = nodes.find((n) => n.data.config["actionType"] === "uniswap/get-pool");
+  const positionNode = nodes.find((n) => n.data.config["actionType"] === "uniswap/get-position");
+
   const updated = nodes.map((node) => {
     const actionType = node.data.config["actionType"] as string | undefined;
     const copy = { ...node, data: { ...node.data, config: { ...node.data.config } } };
@@ -144,7 +147,7 @@ function customizeNodes(nodes: WorkflowNode[], params: CreateWorkflowFromTemplat
         copy.data.config["message"] = `⚠️ ARYA Alert: LP position needs attention.\nPool: ${params.poolAddress}\nWallet: ${params.userWallet.slice(0, 10)}...`;
         break;
       case "Condition":
-        applyConditionConfig(copy, ilThreshold);
+        applyConditionConfig(copy, ilThreshold, poolNode?.id, positionNode?.id);
         break;
     }
 
@@ -154,10 +157,15 @@ function customizeNodes(nodes: WorkflowNode[], params: CreateWorkflowFromTemplat
   return updated;
 }
 
-function applyConditionConfig(node: WorkflowNode, ilThreshold: number): void {
+function applyConditionConfig(node: WorkflowNode, ilThreshold: number, poolNodeId?: string, positionNodeId?: string): void {
   node.data.label = "Compute Position Health";
   node.data.description = `Check if position is out of range or IL exceeds ${ilThreshold}%.`;
   node.data.config["actionType"] = "Condition";
+
+  const poolRef = poolNodeId ? `{{@${poolNodeId}:Read Pool State.tick}}` : "{{Read Pool State.tick}}";
+  const tickLowerRef = positionNodeId ? `{{@${positionNodeId}:Read LP Position.tickLower}}` : "{{Read LP Position.tickLower}}";
+  const tickUpperRef = positionNodeId ? `{{@${positionNodeId}:Read LP Position.tickUpper}}` : "{{Read LP Position.tickUpper}}";
+
   node.data.config["conditionConfig"] = {
     group: {
       id: "arya-health-check",
@@ -166,14 +174,14 @@ function applyConditionConfig(node: WorkflowNode, ilThreshold: number): void {
         {
           id: "rule-out-of-range-below",
           operator: "<",
-          leftOperand: "{{@zwsbkt2-fQXdb6Ql5S1rV:Read Pool State.tick}}",
-          rightOperand: "{{@XwHDpQrpEZwYK3OxVIb4C:Read LP Position.tickLower}}",
+          leftOperand: poolRef,
+          rightOperand: tickLowerRef,
         },
         {
           id: "rule-out-of-range-above",
           operator: ">",
-          leftOperand: "{{@zwsbkt2-fQXdb6Ql5S1rV:Read Pool State.tick}}",
-          rightOperand: "{{@XwHDpQrpEZwYK3OxVIb4C:Read LP Position.tickUpper}}",
+          leftOperand: poolRef,
+          rightOperand: tickUpperRef,
         },
       ],
     },
