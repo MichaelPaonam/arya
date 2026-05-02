@@ -119,11 +119,11 @@ All contracts are deployed on 0G Galileo Testnet (Chain ID: 16602).
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| `YieldSwarmRegistry.sol` | `0xFa07708964b3a5368A6a31cBBf77bA028B880326` | ERC-7857 iNFT registry - each agent has a verifiable on-chain identity |
-| `StrategyVault.sol` | `0x361B475a6F7db85eBc53B12d6b865297963735e6` | Human-in-the-loop approval gate - agents propose, only the owner can approve fund movements |
-| `AgentReputation.sol` | `0x84cEA07f808283E588C1B413BEdAe8A3b54A3D51` | On-chain performance tracking - agents build verifiable reputation over time |
-| `SmartAccountFactory.sol` | `0x47BbAcd9af01f5527255bd095193f0416a7eA482` | CREATE2 deterministic smart account deployment with execute() for session key delegation |
-| `SessionKeyModule.sol` | `0x00fbF00218dE2FC03D7b39314447B52cc28D6544` | Session keys for bounded agent autonomy with spend limits and time bounds |
+| `YieldSwarmRegistry.sol` | `0x83A2bda1f2514871E805A59bA6448ec2346e2C03` | ERC-7857 iNFT registry - each agent has a verifiable on-chain identity |
+| `StrategyVault.sol` | `0xFB7382DEc0D8B161594742cE7F6d32025729B25B` | Human-in-the-loop approval gate - agents propose, only the owner can approve fund movements |
+| `AgentReputation.sol` | `0x49564aA6AfDA323F62F9BC562638c272776d0D1a` | On-chain performance tracking - agents build verifiable reputation over time |
+| `SmartAccountFactory.sol` | `0x06a148eD3F8Da650a9BDd37a12a75ae960c79e40` | CREATE2 deterministic smart account deployment with execute() for session key delegation |
+| `SessionKeyModule.sol` | `0x01be109884a05e29b4e073F0fa23D825393d0fB6` | Session keys for bounded agent autonomy with spend limits and time bounds |
 
 ## Sponsor Integrations
 
