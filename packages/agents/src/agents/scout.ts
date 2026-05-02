@@ -8,6 +8,7 @@ export interface ScoutAgentInput {
   agentId: string;
   memoryRootHash?: string;
   poolFilter?: "all" | "stable" | "bluechip";
+  poolLimit?: number;
 }
 
 export interface ScoutAgentOutput {
@@ -33,7 +34,7 @@ export async function scoutAgent(input: ScoutAgentInput): Promise<ScoutAgentOutp
     const filter = input.poolFilter ?? "all";
     pools = await fetchPools({
       minTvl: filter === "bluechip" ? 50_000_000 : 1_000_000,
-      limit: 20,
+      limit: input.poolLimit ?? 3,
       maxApy: filter === "stable" ? 30 : filter === "bluechip" ? 50 : undefined,
       stablecoinOnly: filter === "stable",
     });

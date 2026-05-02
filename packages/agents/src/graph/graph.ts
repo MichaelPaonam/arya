@@ -25,6 +25,7 @@ export interface PipelineConfig {
   maxRiskScore?: number;
   minConfidence?: number;
   poolFilter?: "all" | "stable" | "bluechip";
+  poolLimit?: number;
   stopBeforeExecute?: boolean;
   llm?: LlmConfig;
   outcome?: OutcomeInput;
@@ -83,6 +84,7 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineState
       agentId: config.agentIds.scout,
       memoryRootHash,
       poolFilter: config.poolFilter,
+      poolLimit: config.poolLimit,
     });
     emit({ type: "api_call", service: "defillama", action: "Fetching top DeFi pools", status: "success" });
     emit({ type: "api_call", service: "llm", action: "Analyzing pool opportunities", status: "success" });
