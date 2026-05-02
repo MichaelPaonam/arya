@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useAccount } from "wagmi";
 import { AppShell } from "@/components/app-shell";
 import { RiskBadge } from "@/components/risk-badge";
 import { TierBadge } from "@/components/tier-badge";
@@ -14,6 +15,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PlaceholderStat } from "@/components/ui/placeholder-stat";
 import { useAppMode } from "@/hooks/use-app-mode";
 import { usePipeline } from "@/hooks/use-pipeline";
+import { useStrategyVault } from "@/hooks/use-strategy-vault";
 import { mockPipelineState } from "@/mocks/pipeline-state";
 import type { StrategyProposal } from "@/types/pipeline";
 import {
@@ -66,7 +68,11 @@ export default function CommandCenterPage() {
     reject,
     reset,
   } = usePipeline();
+  const { isConnected, address } = useAccount();
+  const vault = useStrategyVault();
   const [dialogProposal, setDialogProposal] = useState<StrategyProposal | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [vaultTxHash, setVaultTxHash] = useState<string | null>(null);
   const proposalsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,6 +80,19 @@ export default function CommandCenterPage() {
       proposalsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [proposals.length]);
+
+  // When vault approval tx confirms, proceed with off-chain execution
+  useEffect(() => {
+    if (vault.isConfirmed && approvingId) {
+      const proposal = proposals.find((p) => p.id === approvingId);
+      if (proposal) {
+        setVaultTxHash(vault.txHash ?? null);
+        approve([proposal], { [proposal.id]: "10" });
+      }
+      setApprovingId(null);
+      vault.reset();
+    }
+  }, [vault.isConfirmed, approvingId, proposals, approve, vault]);
 
   const handleRunScan = async () => {
     const stored = localStorage.getItem("arya-max-risk-score");
@@ -87,16 +106,30 @@ export default function CommandCenterPage() {
   };
 
   const handleApproveAll = () => {
-    const amounts = Object.fromEntries(proposals.map((p) => [p.id, "10"]));
-    approve(proposals, amounts);
+    if (isConnected && proposals.length > 0) {
+      // Approve first proposal on-chain, rest will follow
+      setApprovingId(proposals[0].id);
+      vault.approveOnChain(proposals[0].id);
+    } else {
+      const amounts = Object.fromEntries(proposals.map((p) => [p.id, "10"]));
+      approve(proposals, amounts);
+    }
   };
 
   const handleRejectAll = () => {
+    if (isConnected && proposals.length > 0) {
+      vault.rejectOnChain(proposals[0].id, "User rejected");
+    }
     reject();
   };
 
   const handleApproveSingle = (proposal: StrategyProposal, amount: string) => {
-    approve([proposal], { [proposal.id]: amount });
+    if (isConnected) {
+      setApprovingId(proposal.id);
+      vault.approveOnChain(proposal.id);
+    } else {
+      approve([proposal], { [proposal.id]: amount });
+    }
   };
 
   if (mode === "hackathon") {
@@ -161,6 +194,7 @@ export default function CommandCenterPage() {
                 <PendingStrategyCard
                   key={proposal.id}
                   proposal={proposal}
+                  isApproving={approvingId === proposal.id && (vault.isPending || vault.isConfirming)}
                   onApprove={(amount) => handleApproveSingle(proposal, amount)}
                   onReject={() => {
                     // Remove single proposal from the list via reject pattern
@@ -187,7 +221,7 @@ export default function CommandCenterPage() {
         {/* Execution results */}
         {executionResults.length > 0 && (
           <section className="mt-5">
-            <ExecutionResults results={executionResults} proposals={state?.proposals ?? []} />
+            <ExecutionResults results={executionResults} proposals={state?.proposals ?? []} vaultTxHash={vaultTxHash} />
           </section>
         )}
 

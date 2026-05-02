@@ -7,6 +7,7 @@ import type { ExecutionResult, StrategyProposal } from "@/types/pipeline";
 interface ExecutionResultsProps {
   results: ExecutionResult[];
   proposals: StrategyProposal[];
+  vaultTxHash?: string | null;
 }
 
 const OG_EXPLORER = "https://chainscan-galileo.0g.ai/tx";
@@ -42,7 +43,7 @@ function truncateHash(hash: string): string {
   return `${hash.slice(0, 10)}...${hash.slice(-6)}`;
 }
 
-export function ExecutionResults({ results, proposals }: ExecutionResultsProps) {
+export function ExecutionResults({ results, proposals, vaultTxHash }: ExecutionResultsProps) {
   if (results.length === 0) return null;
 
   return (
@@ -50,6 +51,21 @@ export function ExecutionResults({ results, proposals }: ExecutionResultsProps) 
       <div className="border-b border-white/5 px-5 py-3">
         <h3 className="text-sm font-semibold text-on-surface">Execution Results</h3>
       </div>
+      {vaultTxHash && (
+        <div className="border-b border-border/50 px-5 py-2.5">
+          <a
+            href={`${OG_EXPLORER}/${vaultTxHash}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1 text-[11px] font-semibold text-secondary transition hover:bg-secondary/20"
+          >
+            <CheckCircle2 className="size-3" />
+            On-chain approval
+            <span className="font-mono">{truncateHash(vaultTxHash)}</span>
+            <ExternalLink className="size-3" />
+          </a>
+        </div>
+      )}
       <div className="divide-y divide-border/50">
         {results.map((result) => {
           const proposal = proposals.find((p) => p.id === result.strategyId);

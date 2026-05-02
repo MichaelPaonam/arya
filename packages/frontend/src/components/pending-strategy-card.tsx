@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, XCircle, TrendingUp, ShieldCheck, Zap } from "lucide-react";
+import { CheckCircle2, XCircle, TrendingUp, ShieldCheck, Zap, Loader2 } from "lucide-react";
 import {
   ResponsiveContainer,
   RadarChart,
@@ -13,10 +13,12 @@ import type { StrategyProposal } from "@/types/pipeline";
 
 export function PendingStrategyCard({
   proposal,
+  isApproving,
   onApprove,
   onReject,
 }: {
   proposal: StrategyProposal;
+  isApproving?: boolean;
   onApprove: (amount: string) => void;
   onReject: () => void;
 }) {
@@ -103,13 +105,19 @@ export function PendingStrategyCard({
         <div className="flex gap-2">
           <button
             onClick={() => onApprove(amount || "10")}
-            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-tertiary px-3 text-xs font-semibold text-tertiary-foreground transition hover:opacity-90"
+            disabled={isApproving}
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-tertiary px-3 text-xs font-semibold text-tertiary-foreground transition hover:opacity-90 disabled:opacity-60"
           >
-            <CheckCircle2 className="size-3.5" /> Approve
+            {isApproving ? (
+              <><Loader2 className="size-3.5 animate-spin" /> Signing...</>
+            ) : (
+              <><CheckCircle2 className="size-3.5" /> Approve</>
+            )}
           </button>
           <button
             onClick={onReject}
-            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-destructive/90 px-3 text-xs font-semibold text-destructive-foreground transition hover:opacity-90"
+            disabled={isApproving}
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-destructive/90 px-3 text-xs font-semibold text-destructive-foreground transition hover:opacity-90 disabled:opacity-60"
           >
             <XCircle className="size-3.5" /> Reject
           </button>
