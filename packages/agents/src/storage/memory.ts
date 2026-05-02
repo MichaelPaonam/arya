@@ -1,20 +1,30 @@
 import type { AgentMemoryBlob } from "../types/index.js";
 import { uploadMemory, downloadMemory } from "../tools/og-storage.js";
+import type { StorageReceipt } from "../tools/og-storage.js";
 import { redisClient } from "./redis.js";
 
-export async function saveAgentMemory(memory: AgentMemoryBlob): Promise<string> {
-  const rootHash = await uploadMemory(memory);
+export type { StorageReceipt };
+
+export async function saveAgentMemory(memory: AgentMemoryBlob): Promise<StorageReceipt> {
+  const receipt = await uploadMemory(memory);
 
   const key = `arya:agent:${memory.agentId}:memory`;
-  await redisClient.set(`${key}:latest`, rootHash);
-  await redisClient.lpush(`${key}:history`, rootHash);
+  try {
+    await redisClient.set(`${key}:latest`, receipt.rootHash);
+    await redisClient.lpush(`${key}:history`, receipt.rootHash);
+  } catch {
+    // Redis persistence is best-effort — don't fail the pipeline
+  }
 
-  return rootHash;
+  return receipt;
 }
 
 export async function loadAgentMemory(agentId: string): Promise<AgentMemoryBlob | null> {
-  const rootHash = await redisClient.get(`arya:agent:${agentId}:memory:latest`);
-  if (!rootHash) return null;
-
-  return downloadMemory(rootHash);
+  try {
+    const rootHash = await redisClient.get(`arya:agent:${agentId}:memory:latest`);
+    if (!rootHash) return null;
+    return downloadMemory(rootHash);
+  } catch {
+    return null;
+  }
 }
