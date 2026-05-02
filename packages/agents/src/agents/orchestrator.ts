@@ -75,7 +75,7 @@ export async function orchestratorAgent(input: OrchestratorAgentInput): Promise<
     messages: [
       {
         role: "system",
-        content: "You are a DeFi strategy synthesizer. Write a concise explanation of this strategy for a human user. Return JSON with: explanation (string, 1-2 sentences).",
+        content: `You are a DeFi strategy advisor explaining to a human investor why a yield opportunity is worth pursuing. Write a compelling but honest explanation covering: (1) why this pool/protocol is attractive, (2) key risk mitigants, (3) what makes the timing right. Return JSON with: explanation (string, 2-3 sentences, persuasive but balanced).`,
       },
       {
         role: "user",

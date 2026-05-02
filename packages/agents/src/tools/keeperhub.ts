@@ -128,7 +128,6 @@ function customizeNodes(nodes: WorkflowNode[], params: CreateWorkflowFromTemplat
 
     switch (actionType) {
       case "uniswap/get-position":
-        copy.data.config["tokenId"] = "0";
         copy.data.config["network"] = "1";
         break;
       case "uniswap/get-pool":
@@ -137,17 +136,16 @@ function customizeNodes(nodes: WorkflowNode[], params: CreateWorkflowFromTemplat
         copy.data.config["fee"] = "3000";
         copy.data.config["network"] = "1";
         break;
-      case "webhook/send": {
+      case "webhook/send-webhook": {
         applyWebhookConfig(copy, params);
         break;
       }
       case "telegram/send-message":
         copy.data.config["message"] = `⚠️ ARYA Alert: LP position needs attention.\nPool: ${params.poolAddress}\nWallet: ${params.userWallet.slice(0, 10)}...`;
         break;
-    }
-
-    if (copy.data.type === "condition" || copy.data.label?.toLowerCase().includes("health")) {
-      applyConditionConfig(copy, ilThreshold);
+      case "Condition":
+        applyConditionConfig(copy, ilThreshold);
+        break;
     }
 
     return copy;
@@ -158,47 +156,48 @@ function customizeNodes(nodes: WorkflowNode[], params: CreateWorkflowFromTemplat
 
 function applyConditionConfig(node: WorkflowNode, ilThreshold: number): void {
   node.data.label = "Compute Position Health";
-  node.data.description = `Trigger if position is out of range OR impermanent loss exceeds ${ilThreshold}%.`;
-  node.data.config["conditions"] = [
-    {
-      field: "Read Pool State.tick",
-      operator: "less than",
-      value: "{{@Read LP Position.tickLower}}",
-    },
-    {
+  node.data.description = `Check if position is out of range or IL exceeds ${ilThreshold}%.`;
+  node.data.config["actionType"] = "Condition";
+  node.data.config["conditionConfig"] = {
+    group: {
+      id: "arya-health-check",
       logic: "OR",
-      field: "Read Pool State.tick",
-      operator: "greater than",
-      value: "{{@Read LP Position.tickUpper}}",
+      rules: [
+        {
+          id: "rule-out-of-range-below",
+          operator: "<",
+          leftOperand: "{{@zwsbkt2-fQXdb6Ql5S1rV:Read Pool State.tick}}",
+          rightOperand: "{{@XwHDpQrpEZwYK3OxVIb4C:Read LP Position.tickLower}}",
+        },
+        {
+          id: "rule-out-of-range-above",
+          operator: ">",
+          leftOperand: "{{@zwsbkt2-fQXdb6Ql5S1rV:Read Pool State.tick}}",
+          rightOperand: "{{@XwHDpQrpEZwYK3OxVIb4C:Read LP Position.tickUpper}}",
+        },
+      ],
     },
-    {
-      logic: "OR",
-      field: "computed.impermanentLoss",
-      operator: "greater than",
-      value: String(ilThreshold),
-    },
-  ];
-  node.data.config["expression"] = `{{@Read Pool State.tick}} < {{@Read LP Position.tickLower}} || {{@Read Pool State.tick}} > {{@Read LP Position.tickUpper}} || {{computed.impermanentLoss}} > ${ilThreshold}`;
+  };
 }
 
 function applyWebhookConfig(node: WorkflowNode, params: CreateWorkflowFromTemplateParams): void {
   const baseUrl = process.env["NEXT_PUBLIC_APP_URL"]
     || (process.env["VERCEL_URL"] ? `https://${process.env["VERCEL_URL"]}` : "http://localhost:3000");
-  node.data.config["actionType"] = "webhook/send";
-  node.data.config["url"] = `${baseUrl}/api/alerts/position-health`;
-  node.data.config["method"] = "POST";
-  node.data.config["headers"] = { "Content-Type": "application/json" };
-  node.data.config["body"] = JSON.stringify({
-    positionTokenId: "{{position.tokenId}}",
-    poolAddress: params.poolAddress,
+  node.data.config["actionType"] = "webhook/send-webhook";
+  node.data.config["webhookUrl"] = `${baseUrl}/api/alerts/position-health`;
+  node.data.config["webhookMethod"] = "POST";
+  node.data.config["webhookHeaders"] = JSON.stringify({ "Content-Type": "application/json" });
+  node.data.config["webhookPayload"] = JSON.stringify({
+    positionTokenId: "{{Read LP Position.tokenId}}",
+    poolAddress: "{{Read Pool State.poolAddress}}",
     walletAddress: params.userWallet,
     chainId: params.chainId,
-    liquidity: "{{position.liquidity}}",
-    currentTick: "{{pool.tick}}",
-    tickLower: "{{position.tickLower}}",
-    tickUpper: "{{position.tickUpper}}",
-    impermanentLoss: "{{computed.impermanentLoss}}",
-    isOutOfRange: "{{computed.isOutOfRange}}",
+    liquidity: "{{Read LP Position.liquidity}}",
+    currentTick: "{{Read Pool State.tick}}",
+    tickLower: "{{Read LP Position.tickLower}}",
+    tickUpper: "{{Read LP Position.tickUpper}}",
+    impermanentLoss: "{{Compute Position Health.impermanentLoss}}",
+    isOutOfRange: "{{Compute Position Health.isOutOfRange}}",
   });
   node.data.description = "Auto-close position via ARYA if IL exceeds threshold";
 }
@@ -225,7 +224,7 @@ function injectWebhookIfMissing(
   edges: WorkflowEdge[],
   params: CreateWorkflowFromTemplateParams
 ): { nodes: WorkflowNode[]; edges: WorkflowEdge[] } {
-  const hasWebhook = nodes.some((n) => n.data.config["actionType"] === "webhook/send");
+  const hasWebhook = nodes.some((n) => n.data.config["actionType"] === "webhook/send-webhook");
   if (hasWebhook) return { nodes, edges };
 
   const conditionNode = nodes.find((n) =>
@@ -276,6 +275,12 @@ export async function createWorkflowFromTemplate(params: CreateWorkflowFromTempl
     });
   } catch {
     // PATCH is best-effort — workflow exists even if customization fails
+  }
+
+  try {
+    await publishWorkflow(copy.id);
+  } catch {
+    // go-live is best-effort — workflow can be enabled manually
   }
 
   return WorkflowSchema.parse({
