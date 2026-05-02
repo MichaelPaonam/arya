@@ -7,7 +7,7 @@ const FEATURES = {
   leaderboard: ["full"],
   sessionKeys: ["full"],
   multipleVaults: ["full"],
-  settingsPage: ["full"],
+  settingsPage: ["hackathon", "full"],
   historyPage: ["hackathon", "full"],
   vaultsPage: ["hackathon", "full"],
   opportunityDiscovery: ["hackathon", "full"],

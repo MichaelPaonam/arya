@@ -101,12 +101,24 @@ export default function OpportunitiesPage() {
           ))}
         </section>
 
+        {/* Filters */}
+        <section className="glass mt-5 flex flex-wrap items-center gap-2 px-4 py-3">
+          <Filter className="size-4 text-on-surface-variant" />
+          <Pills items={categories} />
+          <span className="mx-1 h-5 w-px bg-border" />
+          <FilterButton label={chains[0]} />
+          <FilterButton label={risks[0]} />
+          <button className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg bg-foreground/5 px-3 text-xs font-semibold transition hover:bg-foreground/10">
+            <ArrowUpDown className="size-3.5" /> Sort: APY desc
+          </button>
+        </section>
+
         <section className="glass mt-5 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-y border-border text-left">
-                  {["Protocol", "Pair", "Category", "APY", "TVL", "Risk"].map((h) => (
+                  {["Protocol", "Asset", "Chain", "Category", "Net APY", "TVL", "Risk"].map((h) => (
                     <th key={h} className="label-eyebrow whitespace-nowrap px-4 py-3 font-semibold">
                       {h}
                     </th>
@@ -127,6 +139,7 @@ export default function OpportunitiesPage() {
                         </div>
                       </td>
                       <td className="text-mono px-4 py-4 font-medium">{o.tokenPair.join(" / ")}</td>
+                      <td className="px-4 py-4 text-on-surface-variant">Ethereum</td>
                       <td className="px-4 py-4 text-on-surface-variant">{o.category}</td>
                       <td className="text-mono px-4 py-4 font-semibold text-secondary">{o.estimatedAPY.toFixed(2)}%</td>
                       <td className="text-mono px-4 py-4 text-on-surface-variant">{formatTvl(o.tvl)}</td>

@@ -79,7 +79,16 @@ export default function HistoryPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-5">
             <div>
               <div className="label-eyebrow">Event Stream</div>
-              <h2 className="mt-1 text-lg font-semibold">Execution History</h2>
+              <h2 className="mt-1 text-lg font-semibold">Transaction History</h2>
+            </div>
+            <div className="flex gap-1.5 text-xs">
+              {["All", "Executed", "Pending", "Failed"].map((t, i) => (
+                <button key={t} className={`rounded-lg px-3 py-1.5 font-semibold transition ${
+                  i === 0 ? "bg-secondary/15 text-secondary" : "text-on-surface-variant hover:bg-foreground/5"
+                }`}>
+                  {t}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -114,8 +123,16 @@ export default function HistoryPage() {
                   </div>
 
                   <div className="text-mono w-28 text-right text-sm font-semibold">
-                    {item.proposal.opportunity.tokenPair.join("/")}
+                    {action?.amountIn ? `${action.amountIn} ${action.tokenIn}` : item.proposal.opportunity.tokenPair.join("/")}
                   </div>
+
+                  {item.result?.status === "executed" ? (
+                    <div className="text-mono w-24 text-right text-sm font-semibold text-tertiary">
+                      +{item.proposal.estimatedReturn.toFixed(1)}%
+                    </div>
+                  ) : (
+                    <div className="w-24 text-right text-xs text-on-surface-variant">—</div>
+                  )}
 
                   <div className="w-28 text-right">
                     {item.result?.txHash ? (
