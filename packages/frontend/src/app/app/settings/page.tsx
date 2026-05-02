@@ -125,21 +125,6 @@ function Toggle({ label, enabled }: { label: string; enabled?: boolean }) {
   );
 }
 
-function Slider({ label, value }: { label: string; value: string }) {
-  const pct = parseFloat(value);
-  return (
-    <div className="rounded-lg border border-border bg-foreground/5 px-3.5 py-3">
-      <div className="flex items-center justify-between">
-        <span className="label-eyebrow">{label}</span>
-        <span className="text-mono text-sm font-semibold text-secondary">{value}</span>
-      </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10">
-        <div className="h-full rounded-full bg-secondary" style={{ width: `${Math.min(pct * 2.5, 100)}%` }} />
-      </div>
-    </div>
-  );
-}
-
 function KeyRow({ agent, scope, expiry }: { agent: string; scope: string; expiry: string }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-border bg-foreground/5 px-3.5 py-2.5">

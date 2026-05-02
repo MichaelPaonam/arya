@@ -136,9 +136,27 @@ function customizeNodes(nodes: WorkflowNode[], params: CreateWorkflowFromTemplat
         updated.data.config["fee"] = "3000";
         updated.data.config["network"] = "1";
         break;
-      case "webhook/send":
-        // webhook/send not yet supported in KeeperHub UI — skip
+      case "webhook/send": {
+        const baseUrl = process.env["NEXT_PUBLIC_APP_URL"]
+          || (process.env["VERCEL_URL"] ? `https://${process.env["VERCEL_URL"]}` : "http://localhost:3000");
+        updated.data.config["url"] = `${baseUrl}/api/alerts/position-health`;
+        updated.data.config["method"] = "POST";
+        updated.data.config["headers"] = { "Content-Type": "application/json" };
+        updated.data.config["body"] = JSON.stringify({
+          positionTokenId: "{{position.tokenId}}",
+          poolAddress: params.poolAddress,
+          walletAddress: params.userWallet,
+          chainId: params.chainId,
+          liquidity: "{{position.liquidity}}",
+          currentTick: "{{pool.tick}}",
+          tickLower: "{{position.tickLower}}",
+          tickUpper: "{{position.tickUpper}}",
+          impermanentLoss: "{{computed.impermanentLoss}}",
+          isOutOfRange: "{{computed.isOutOfRange}}",
+        });
+        updated.data.description = "Auto-close position via ARYA if IL exceeds threshold";
         break;
+      }
       case "telegram/send-message":
         updated.data.config["message"] = `⚠️ ARYA Alert: LP position needs attention.\nPool: ${params.poolAddress}\nWallet: ${params.userWallet.slice(0, 10)}...`;
         break;
