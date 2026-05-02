@@ -1,21 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AppShell } from "@/components/app-shell";
 import { RiskBadge } from "@/components/risk-badge";
 import { TierBadge } from "@/components/tier-badge";
 import { PipelineStepper } from "@/components/pipeline-stepper";
+import { PipelineLiveFeed } from "@/components/pipeline-live-feed";
+import { ScanVisualizer } from "@/components/scan-visualizer";
 import { PendingStrategyCard } from "@/components/pending-strategy-card";
 import { StrategyApprovalDialog } from "@/components/strategy-approval-dialog";
+import { ExecutionResults } from "@/components/execution-results";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PlaceholderStat } from "@/components/ui/placeholder-stat";
+import { useAppMode } from "@/hooks/use-app-mode";
 import { usePipeline } from "@/hooks/use-pipeline";
 import { mockPipelineState } from "@/mocks/pipeline-state";
+import type { StrategyProposal } from "@/types/pipeline";
 import {
-  TrendingUp,
-  Activity,
   Wallet,
-  Triangle,
   Sparkles,
   Loader2,
+  CheckCircle2,
+  XCircle,
+  TrendingUp,
+  Activity,
+  Triangle,
 } from "lucide-react";
 import {
   AreaChart,
@@ -42,9 +51,194 @@ const opportunities = [
 ];
 
 export default function CommandCenterPage() {
-  const { state, isLoading, error, trigger, reset } = usePipeline();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const { mode } = useAppMode();
+  const {
+    state,
+    isLoading,
+    error,
+    events,
+    currentPhase,
+    proposals,
+    executionResults,
+    isExecuting,
+    trigger,
+    approve,
+    reject,
+    reset,
+  } = usePipeline();
+  const [dialogProposal, setDialogProposal] = useState<StrategyProposal | null>(null);
+  const proposalsRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (proposals.length > 0 && proposalsRef.current) {
+      proposalsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [proposals.length]);
+
+  const handleRunScan = async () => {
+    const stored = localStorage.getItem("arya-max-risk-score");
+    const maxRiskScore = stored ? parseInt(stored, 10) : 7;
+    const confStored = localStorage.getItem("arya-min-confidence");
+    const minConfidence = confStored ? parseFloat(confStored) : 0.4;
+    const poolFilter = localStorage.getItem("arya-pool-filter") || "all";
+    await trigger("0xc1Ac7fd08367321b5d486a81349Ab1CB793aF0C1", { maxRiskScore, minConfidence, poolFilter });
+  };
+
+  const handleApproveAll = () => {
+    const amounts = Object.fromEntries(proposals.map((p) => [p.id, "10"]));
+    approve(proposals, amounts);
+  };
+
+  const handleRejectAll = () => {
+    reject();
+  };
+
+  const handleApproveSingle = (proposal: StrategyProposal, amount: string) => {
+    approve([proposal], { [proposal.id]: amount });
+  };
+
+  if (mode === "hackathon") {
+    return (
+      <AppShell
+        eyebrow="Command Center"
+        title="Yield Swarm Overview"
+        actions={
+          <button
+            onClick={handleRunScan}
+            disabled={isLoading || isExecuting}
+            className="hidden h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60 md:inline-flex"
+          >
+            {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+            {isLoading ? "Scanning..." : "Run scan"}
+          </button>
+        }
+      >
+        <section className="mt-7 grid gap-4 md:grid-cols-4">
+          <PlaceholderStat label="Portfolio Value" hint="After first deposit" />
+          <PlaceholderStat label="Aggregate APY" hint="Weighted average" />
+          <PlaceholderStat label="Win Rate" hint="30-day rolling" />
+          <PlaceholderStat label="Active Vaults" hint="Open positions" />
+        </section>
+
+        {(isLoading || events.length > 0) && (
+          <>
+            <section className="mt-5">
+              <PipelineStepper currentPhase={currentPhase} isLoading={isLoading} />
+            </section>
+            <section className="mt-5 grid gap-4 lg:grid-cols-[280px_1fr]">
+              <ScanVisualizer currentPhase={currentPhase} events={events} isLoading={isLoading} />
+              <PipelineLiveFeed events={events} isLoading={isLoading} />
+            </section>
+          </>
+        )}
+
+        {/* Proposal approval cards */}
+        {proposals.length > 0 && !isExecuting && executionResults.length === 0 && (
+          <section ref={proposalsRef} className="mt-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-on-surface">
+                {proposals.length} {proposals.length === 1 ? "Strategy" : "Strategies"} Ready for Approval
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleApproveAll}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-tertiary px-4 text-xs font-semibold text-tertiary-foreground transition hover:opacity-90"
+                >
+                  <CheckCircle2 className="size-3.5" /> Approve All
+                </button>
+                <button
+                  onClick={handleRejectAll}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-destructive/90 px-4 text-xs font-semibold text-destructive-foreground transition hover:opacity-90"
+                >
+                  <XCircle className="size-3.5" /> Reject All
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {proposals.map((proposal) => (
+                <PendingStrategyCard
+                  key={proposal.id}
+                  proposal={proposal}
+                  onApprove={(amount) => handleApproveSingle(proposal, amount)}
+                  onReject={() => {
+                    // Remove single proposal from the list via reject pattern
+                    reject();
+                  }}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Executing state */}
+        {isExecuting && (
+          <section className="mt-5">
+            <div className="glass p-6 text-center">
+              <Loader2 className="size-5 animate-spin text-secondary mx-auto mb-2" />
+              <p className="text-sm text-on-surface-variant">
+                Executing approved strategies...
+              </p>
+            </div>
+          </section>
+        )}
+
+        {/* Execution results */}
+        {executionResults.length > 0 && (
+          <section className="mt-5">
+            <ExecutionResults results={executionResults} proposals={state?.proposals ?? []} />
+          </section>
+        )}
+
+        {!isLoading && events.length === 0 && proposals.length === 0 && executionResults.length === 0 && (
+          <section className="mt-5">
+            <EmptyState
+              icon={Wallet}
+              eyebrow="Getting Started"
+              title="Your portfolio is empty"
+              description="Run your first scan to discover yield opportunities and start deploying capital."
+              primaryAction={{ label: "Run first scan", onClick: handleRunScan }}
+            />
+          </section>
+        )}
+
+        {state && !isLoading && state.proposals.length === 0 && proposals.length === 0 && executionResults.length === 0 && (
+          <section className="mt-5">
+            <div className="glass p-6 text-center">
+              <p className="text-sm text-on-surface-variant">
+                No strategies passed the confidence threshold. Try again later.
+              </p>
+            </div>
+          </section>
+        )}
+
+        {error && (
+          <section className="mt-5">
+            <div className="glass border-destructive/30 p-6">
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+          </section>
+        )}
+
+        {/* Strategy detail dialog */}
+        {dialogProposal && (
+          <StrategyApprovalDialog
+            proposal={dialogProposal}
+            open={!!dialogProposal}
+            onOpenChange={(open) => { if (!open) setDialogProposal(null); }}
+            onApprove={() => {
+              handleApproveSingle(dialogProposal, "10");
+              setDialogProposal(null);
+            }}
+            onReject={() => {
+              setDialogProposal(null);
+            }}
+          />
+        )}
+      </AppShell>
+    );
+  }
+
+  // Full mode (non-hackathon) — rich mock data + live pipeline
   const pendingProposal = state?.proposals?.[0] || mockPipelineState.proposals[0];
 
   const c = {
@@ -56,11 +250,6 @@ export default function CommandCenterPage() {
     foreground: "var(--foreground)",
   };
 
-  const handleRunScan = async () => {
-    await trigger("0x84c2000000000000000000000000000000f31a");
-    setDialogOpen(true);
-  };
-
   return (
     <AppShell
       eyebrow="Command Center"
@@ -68,7 +257,7 @@ export default function CommandCenterPage() {
       actions={
         <button
           onClick={handleRunScan}
-          disabled={isLoading}
+          disabled={isLoading || isExecuting}
           className="hidden h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60 md:inline-flex"
         >
           {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
@@ -79,15 +268,72 @@ export default function CommandCenterPage() {
       {/* Pipeline stepper (visible when loading or has results) */}
       {(isLoading || state) && (
         <section className="mt-7">
-          <PipelineStepper
-            currentPhase={state?.currentPhase || null}
-            isLoading={isLoading}
-          />
+          <PipelineStepper currentPhase={currentPhase} isLoading={isLoading} />
         </section>
       )}
 
-      {/* Strategy proposal (visible when pipeline completes with proposals) */}
-      {state?.proposals?.[0] && !isLoading && (
+      {/* Scan visualizer + live feed side-by-side */}
+      {(isLoading || events.length > 0) && (
+        <section className="mt-5 grid gap-4 lg:grid-cols-[280px_1fr]">
+          <ScanVisualizer currentPhase={currentPhase} events={events} isLoading={isLoading} />
+          <PipelineLiveFeed events={events} isLoading={isLoading} />
+        </section>
+      )}
+
+      {/* Proposal approval cards */}
+      {proposals.length > 0 && !isExecuting && executionResults.length === 0 && (
+        <section ref={proposalsRef} className="mt-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-on-surface">
+              {proposals.length} {proposals.length === 1 ? "Strategy" : "Strategies"} Ready for Approval
+            </h3>
+            <div className="flex gap-2">
+              <button
+                onClick={handleApproveAll}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-tertiary px-4 text-xs font-semibold text-tertiary-foreground transition hover:opacity-90"
+              >
+                <CheckCircle2 className="size-3.5" /> Approve All
+              </button>
+              <button
+                onClick={handleRejectAll}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-destructive/90 px-4 text-xs font-semibold text-destructive-foreground transition hover:opacity-90"
+              >
+                <XCircle className="size-3.5" /> Reject All
+              </button>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {proposals.map((proposal) => (
+              <PendingStrategyCard
+                key={proposal.id}
+                proposal={proposal}
+                onApprove={(amount) => handleApproveSingle(proposal, amount)}
+                onReject={() => reject()}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Executing state */}
+      {isExecuting && (
+        <section className="mt-5">
+          <div className="glass p-6 text-center">
+            <Loader2 className="size-5 animate-spin text-secondary mx-auto mb-2" />
+            <p className="text-sm text-on-surface-variant">Executing approved strategies...</p>
+          </div>
+        </section>
+      )}
+
+      {/* Execution results */}
+      {executionResults.length > 0 && (
+        <section className="mt-5">
+          <ExecutionResults results={executionResults} proposals={state?.proposals ?? []} />
+        </section>
+      )}
+
+      {/* Strategy approved message */}
+      {state?.proposals?.[0] && !isLoading && proposals.length === 0 && executionResults.length === 0 && (
         <section className="mt-5">
           <div className="glass p-6 text-center">
             <p className="text-sm text-tertiary font-semibold">
@@ -98,7 +344,7 @@ export default function CommandCenterPage() {
       )}
 
       {/* No proposals message */}
-      {state && !isLoading && state.proposals.length === 0 && (
+      {state && !isLoading && state.proposals.length === 0 && proposals.length === 0 && executionResults.length === 0 && (
         <section className="mt-5">
           <div className="glass p-6 text-center">
             <p className="text-sm text-on-surface-variant">
@@ -188,9 +434,8 @@ export default function CommandCenterPage() {
 
         <PendingStrategyCard
           proposal={pendingProposal}
-          onApprove={() => {
-            alert("Strategy approved! (wallet integration pending)");
-            reset();
+          onApprove={(amount) => {
+            handleApproveSingle(pendingProposal, amount);
           }}
           onReject={() => {
             reset();
@@ -257,20 +502,20 @@ export default function CommandCenterPage() {
       </section>
 
       {/* Strategy Approval Dialog */}
-      <StrategyApprovalDialog
-        proposal={pendingProposal}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onApprove={() => {
-          setDialogOpen(false);
-          alert("Strategy approved! (wallet integration pending)");
-          reset();
-        }}
-        onReject={() => {
-          setDialogOpen(false);
-          reset();
-        }}
-      />
+      {dialogProposal && (
+        <StrategyApprovalDialog
+          proposal={dialogProposal}
+          open={!!dialogProposal}
+          onOpenChange={(open) => { if (!open) setDialogProposal(null); }}
+          onApprove={() => {
+            handleApproveSingle(dialogProposal, "10");
+            setDialogProposal(null);
+          }}
+          onReject={() => {
+            setDialogProposal(null);
+          }}
+        />
+      )}
     </AppShell>
   );
 }

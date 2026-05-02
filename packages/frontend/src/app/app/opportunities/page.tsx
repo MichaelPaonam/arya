@@ -3,6 +3,9 @@
 import { AppShell } from "@/components/app-shell";
 import { RiskBadge } from "@/components/risk-badge";
 import { TierBadge } from "@/components/tier-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PlaceholderStat } from "@/components/ui/placeholder-stat";
+import { useAppMode } from "@/hooks/use-app-mode";
 import { Triangle, Filter, ArrowUpDown, Sparkles } from "lucide-react";
 
 const opps = [
@@ -23,6 +26,38 @@ const chains = ["All chains", "Ethereum", "Arbitrum", "Base", "Optimism"];
 const risks = ["Any risk", "Low only", "Low + Medium", "All risks"];
 
 export default function OpportunitiesPage() {
+  const { mode } = useAppMode();
+
+  if (mode === "hackathon") {
+    return (
+      <AppShell
+        eyebrow="Live Feed"
+        title="Yield Opportunities"
+        actions={
+          <button className="hidden h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 md:inline-flex">
+            <Sparkles className="size-4" /> Run scan
+          </button>
+        }
+      >
+        <section className="mt-7 grid gap-4 md:grid-cols-4">
+          <PlaceholderStat label="Best APY Found" hint="Across all pools" />
+          <PlaceholderStat label="Pools Scanned" hint="DeFi protocols" />
+          <PlaceholderStat label="Risk-Adjusted Score" hint="Top opportunity" />
+          <PlaceholderStat label="Time to Next Scan" hint="Auto-refresh" />
+        </section>
+        <section className="mt-5">
+          <EmptyState
+            icon={Sparkles}
+            eyebrow="Discovery"
+            title="No opportunities surfaced yet"
+            description="The yield swarm will surface the best risk-adjusted opportunities once you initiate your first scan."
+            primaryAction={{ label: "Run scan", href: "/app" }}
+          />
+        </section>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell
       eyebrow="Live Feed"
