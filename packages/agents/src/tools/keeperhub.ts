@@ -6,6 +6,7 @@ export interface CreateWorkflowFromTemplateParams {
   poolAddress: string;
   userWallet: string;
   chainId: number;
+  positionTokenId: string;
   ilThreshold?: number;
   valueDropThreshold?: number;
   tokenPair?: [string, string];
@@ -132,6 +133,7 @@ function customizeNodes(nodes: WorkflowNode[], params: CreateWorkflowFromTemplat
     switch (actionType) {
       case "uniswap/get-position":
         copy.data.config["network"] = "1";
+        copy.data.config["tokenId"] = params.positionTokenId;
         break;
       case "uniswap/get-pool":
         copy.data.config["tokenA"] = tokens.token0;
