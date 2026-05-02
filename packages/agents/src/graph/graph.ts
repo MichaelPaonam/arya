@@ -58,7 +58,7 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineState
 
   // Phase 1: Scout
   state.currentPhase = "scout";
-  emit({ type: "phase", phase: "scout", message: "Scanning DeFi pools..." });
+  emit({ type: "phase", phase: "scout", message: "Scanning DeFi pools — finding the highest-yield opportunities across protocols" });
 
   // Load previous memory (non-fatal if fails)
   let memoryRootHash: string | undefined;
@@ -111,7 +111,7 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineState
 
   // Phase 2: Risk assessment (per opportunity, errors are non-fatal per item)
   state.currentPhase = "risk";
-  emit({ type: "phase", phase: "risk", message: `Assessing ${state.opportunities.length} opportunities...` });
+  emit({ type: "phase", phase: "risk", message: `Assessing ${state.opportunities.length} opportunities — scoring impermanent loss, smart contract risk, and liquidity depth` });
   const assessedOpportunities: OpportunityFound[] = [];
 
   for (const opportunity of state.opportunities) {
@@ -160,7 +160,7 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineState
 
   // Phase 3: Orchestrator (debate + proposal generation)
   state.currentPhase = "orchestrate";
-  emit({ type: "phase", phase: "orchestrate", message: `Debating ${state.riskAssessments.length} strategies...` });
+  emit({ type: "phase", phase: "orchestrate", message: `Debating ${state.riskAssessments.length} strategies — agents argue for/against each position, then build swap routes` });
   for (let i = 0; i < state.riskAssessments.length; i++) {
     const assessment = state.riskAssessments[i]!;
     const opportunity = assessedOpportunities[i]!;
@@ -214,7 +214,7 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineState
 
   // Phase 4: Executor
   state.currentPhase = "execute";
-  emit({ type: "phase", phase: "execute", message: `Executing ${state.proposals.length} strategies...` });
+  emit({ type: "phase", phase: "execute", message: `Executing ${state.proposals.length} approved strategies — building transactions and setting up monitoring` });
   for (const proposal of state.proposals) {
     try {
       emit({ type: "api_call", service: "uniswap", action: "Checking token approval", status: "started" });

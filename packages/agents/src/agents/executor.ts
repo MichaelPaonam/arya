@@ -67,7 +67,7 @@ export async function executorAgent(input: ExecutorAgentInput): Promise<Executio
   return {
     strategyId: proposal.id,
     status: "executed",
-    txHash: swapTx.data,
+    txHash: swapTx.data.startsWith("0x") ? swapTx.data : `0x${swapTx.data}`,
     keeperWorkflowId: workflowId,
   };
 }

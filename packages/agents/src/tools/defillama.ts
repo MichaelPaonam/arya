@@ -81,9 +81,11 @@ export async function fetchPools(params: {
   }
 
   if (params.uniswapOnly) {
-    const supported = getSupportedTokenSymbols(params.chainId ?? 1);
+    const supported = getSupportedTokenSymbols(1);
     filtered = filtered.filter((p) => {
+      if (p.chain !== "Ethereum") return false;
       const tokens = p.symbol.split("-").map((t) => t.trim().toUpperCase());
+      if (tokens.length < 2) return false;
       return tokens.every((t) => supported.has(t));
     });
   }
