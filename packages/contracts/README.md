@@ -51,6 +51,12 @@ $ anvil
 $ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
+with gas price set
+
+```shell
+$ forge script script/Deploy.s.sol  --rpc-url https://evmrpc-testnet.0g.ai --broadcast --with-gas-price 2500000000 --priority-gas-price 2500000000                                                                                           
+``` 
+
 ### Cast
 
 ```shell

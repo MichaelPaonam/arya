@@ -49,7 +49,12 @@ const PoolHistoryResponseSchema = z.object({
 const YIELDS_BASE_URL = "https://yields.llama.fi";
 const COINS_BASE_URL = "https://coins.llama.fi";
 
-export async function fetchPools(params: { minTvl: number; limit: number }): Promise<PoolData[]> {
+export async function fetchPools(params: {
+  minTvl: number;
+  limit: number;
+  maxApy?: number;
+  stablecoinOnly?: boolean;
+}): Promise<PoolData[]> {
   const response = await fetch(`${YIELDS_BASE_URL}/pools`);
   if (!response.ok) {
     throw new Error(`DefiLlama pools API error: ${response.status}`);
@@ -58,8 +63,21 @@ export async function fetchPools(params: { minTvl: number; limit: number }): Pro
   const json = await response.json();
   const parsed = PoolResponseSchema.parse(json);
 
-  return parsed.data
-    .filter((p) => p.tvlUsd >= params.minTvl)
+  let filtered = parsed.data.filter((p) => p.tvlUsd >= params.minTvl);
+
+  if (params.maxApy) {
+    filtered = filtered.filter((p) => p.apy <= params.maxApy!);
+  }
+
+  if (params.stablecoinOnly) {
+    const stables = ["usdc", "usdt", "dai", "frax", "lusd", "gusd", "busd", "tusd", "usdp", "susd", "usde", "gho", "cusd", "pyusd"];
+    filtered = filtered.filter((p) => {
+      const sym = p.symbol.toLowerCase();
+      return stables.some((s) => sym.includes(s));
+    });
+  }
+
+  return filtered
     .sort((a, b) => b.apy - a.apy)
     .slice(0, params.limit);
 }

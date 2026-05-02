@@ -16,7 +16,12 @@ export interface RiskAgentOutput {
 export async function riskAgent(input: RiskAgentInput): Promise<RiskAgentOutput> {
   const { opportunity, agentId } = input;
 
-  const history = await fetchPoolHistory(opportunity.pool);
+  let history: Awaited<ReturnType<typeof fetchPoolHistory>> = [];
+  try {
+    history = await fetchPoolHistory(opportunity.pool);
+  } catch {
+    // Pool history unavailable — proceed with LLM assessment only
+  }
 
   // Estimate price ratio from APY volatility as proxy for token divergence
   const priceRatio = history.length >= 2

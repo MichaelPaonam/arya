@@ -58,3 +58,18 @@ export const ExecutionResultSchema = z.object({
 });
 
 export type ExecutionResult = z.infer<typeof ExecutionResultSchema>;
+
+export const PositionHealthAlertSchema = z.object({
+  positionTokenId: z.string(),
+  poolAddress: z.string(),
+  walletAddress: z.string(),
+  chainId: z.number().default(1),
+  liquidity: z.string(),
+  currentTick: z.number(),
+  tickLower: z.number(),
+  tickUpper: z.number(),
+  impermanentLoss: z.number(),
+  isOutOfRange: z.boolean(),
+});
+
+export type PositionHealthAlert = z.infer<typeof PositionHealthAlertSchema>;

@@ -8,4 +8,7 @@ export { orchestratorAgent } from "./orchestrator.js";
 export type { OrchestratorAgentInput, OrchestratorAgentOutput } from "./orchestrator.js";
 
 export { executorAgent } from "./executor.js";
-export type { ExecutorAgentInput, ExecutorAgentOutput } from "./executor.js";
+export type { ExecutorAgentInput } from "./executor.js";
+
+export { closePositionAgent } from "./close-position.js";
+export type { ClosePositionAgentInput, ClosePositionAgentResult } from "./close-position.js";

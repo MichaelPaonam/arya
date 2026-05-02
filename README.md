@@ -22,31 +22,86 @@ ARYA is a swarm of four specialized AI agents that work together to discover, ev
 
 ## Architecture
 
+### System Overview
+
+```mermaid
+flowchart LR
+    subgraph Frontend["Frontend (Next.js)"]
+        Dashboard[Dashboard UI]
+        Approve[Approve / Reject]
+    end
+
+    subgraph Agents["Agent Swarm (LangGraph.js)"]
+        Scout[Scout Agent]
+        Risk[Risk Agent]
+        Orch[Orchestrator]
+        Exec[Executor Agent]
+    end
+
+    subgraph Contracts["0G Chain (Solidity)"]
+        Registry[YieldSwarmRegistry\nERC-7857 iNFT]
+        Vault[StrategyVault\nApproval Gate]
+        Rep[AgentReputation\nPerformance Log]
+    end
+
+    subgraph External["External Services"]
+        DeFiLlama[DefiLlama API]
+        Uniswap[Uniswap Trading API]
+        KeeperHub[KeeperHub\nAutomation]
+        ZeroG[0G Storage\nAgent Memory]
+    end
+
+    Dashboard -->|Run Scan| Orch
+    Scout -->|Yield Data| DeFiLlama
+    Scout -->|Pool Data| Uniswap
+    Orch --> Scout
+    Orch --> Risk
+    Orch -->|Proposal| Dashboard
+    Approve -->|Sign Tx| Vault
+    Vault -->|Approved| Exec
+    Exec --> Uniswap
+    Exec --> KeeperHub
+    Vault --> Rep
+    Orch --> ZeroG
+    Registry -.->|Identity| Agents
 ```
-┌─────────────────────────────────────────────┐
-│              ARYA Dashboard                  │
-│  [Strategy Feed] [Risk] [Portfolio] [Approve]│
-└──────────┬─────────────┬──────────┬─────────┘
-           │             │          │
-     ┌─────▼────┐  ┌─────▼────┐  ┌─▼──────────┐
-     │  Scout   │  │   Risk   │  │  Executor   │
-     │  Agent   │  │  Agent   │  │   Agent     │
-     └────┬─────┘  └────┬─────┘  └──┬──────────┘
-          └──────────────┼───────────┘
-                   ┌─────▼──────┐
-                   │Orchestrator│
-                   └─────┬──────┘
-          ┌──────────────┼──────────────┐
-    ┌─────▼─────┐  ┌─────▼─────┐  ┌────▼──────┐
-    │  0G Chain  │  │ 0G Storage│  │ KeeperHub │
-    │  (iNFT ID) │  │ (memory)  │  │ (automate)│
-    └───────────┘  └───────────┘  └───────────┘
-          │              │
-    ┌─────▼─────┐  ┌─────▼──────┐
-    │Uniswap API│  │Upstash     │
-    │           │  │Redis       │
-    └───────────┘  │(sessions)  │
-                   └────────────┘
+
+### Agent Pipeline Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as Dashboard
+    participant O as Orchestrator
+    participant S as Scout
+    participant R as Risk Agent
+    participant V as StrategyVault
+    participant E as Executor
+    participant U as Uniswap API
+    participant K as KeeperHub
+
+    User->>UI: Click "Run Scan"
+    UI->>O: POST /api/pipeline
+    O->>S: Discover opportunities
+    S-->>O: Yield opportunities[]
+    O->>R: Assess risk
+    R-->>O: Risk scores + debate
+    O->>UI: Strategy proposal
+    UI->>User: Present proposal (APY, risk, radar)
+
+    alt User Approves
+        User->>V: Sign approval tx (MetaMask)
+        V->>E: Strategy approved on-chain
+        E->>U: Build swap transaction
+        U-->>E: Signed tx
+        E->>K: Create monitoring workflow
+        K-->>E: Workflow armed
+        E-->>UI: Execution confirmed
+        V->>V: Log outcome → AgentReputation
+    else User Rejects
+        User->>UI: Reject
+        UI->>O: Feedback logged
+    end
 ```
 
 ### Agents
@@ -64,11 +119,11 @@ All contracts are deployed on 0G Galileo Testnet (Chain ID: 16602).
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| `YieldSwarmRegistry.sol` | `0x84f8aA3b17043DC2A10da1b405Cebe2fFbB6eA41` | ERC-7857 iNFT registry - each agent has a verifiable on-chain identity |
-| `StrategyVault.sol` | `0x70bf0491d71f64271fae47ad008d8c83ae6f01a9` | Human-in-the-loop approval gate - agents propose, only the owner can approve fund movements |
-| `AgentReputation.sol` | `0x0e43ed89f56ade0349586bb39c494218c7389f9b` | On-chain performance tracking - agents build verifiable reputation over time |
-| `SmartAccountFactory.sol` | `0xb9a693904f74e1b710e8374f4454b265b97f43b5` | CREATE2 deterministic smart account deployment for users |
-| `SessionKeyModule.sol` | `0x7e32eded548a5512b7956a8b3817f2bad4bdc20a` | Session keys for bounded agent autonomy with spend limits and time bounds |
+| `YieldSwarmRegistry.sol` | `0xc6ae9fa287f7628a221526bafae9fb96e75b7b1e` | ERC-7857 iNFT registry - each agent has a verifiable on-chain identity |
+| `StrategyVault.sol` | `0x124332af824893b5030067df01eed6898ff36f51` | Human-in-the-loop approval gate - agents propose, only the owner can approve fund movements |
+| `AgentReputation.sol` | `0xcad00a3545b63b4936b3044c5cfdf7012cbd6596` | On-chain performance tracking - agents build verifiable reputation over time |
+| `SmartAccountFactory.sol` | `0x3445a25b9b07a302766fb99406f088f544094c7e` | CREATE2 deterministic smart account deployment for users |
+| `SessionKeyModule.sol` | `0x69096aa05f5f19dbad0fd43c1b18190a4119a438` | Session keys for bounded agent autonomy with spend limits and time bounds |
 
 ## Sponsor Integrations
 
@@ -86,9 +141,9 @@ All contracts are deployed on 0G Galileo Testnet (Chain ID: 16602).
 | Wallet | wagmi, viem, RainbowKit |
 | Auth | SIWE (Sign-In With Ethereum) |
 | Agent Framework | LangGraph.js (TypeScript) |
-| LLM | Claude Haiku 4.5 via OpenRouter (BYOK) |
+| LLM | Claude Haiku 4.5 (BYOK — Anthropic or OpenRouter) |
 | Contracts | Solidity, Foundry, ERC-4337 |
-| Blockchain | 0G Chain Testnet, Ethereum Sepolia |
+| Blockchain | 0G Chain Testnet |
 | Storage | 0G Storage SDK |
 | Session/User Data | Upstash Redis |
 | Swap | Uniswap Trading API |
@@ -103,7 +158,7 @@ All contracts are deployed on 0G Galileo Testnet (Chain ID: 16602).
 All you need to use ARYA:
 
 1. **A Web3 wallet** (MetaMask, Rainbow, etc.) — connect via the dashboard
-2. **An OpenRouter API key** (Standard plan only) — enter in Settings for AI-powered analysis. Get one at [openrouter.ai](https://openrouter.ai)
+2. **An LLM API key** (Standard plan only) — enter in Settings for AI-powered analysis. Supports [Anthropic](https://console.anthropic.com) or [OpenRouter](https://openrouter.ai)
 
 That's it. No accounts to create, no infrastructure to manage. Connect your wallet, optionally add your API key, and ARYA's agents start working for you.
 
@@ -115,10 +170,11 @@ Prerequisites for running ARYA locally:
 
 - Node.js 18+
 - [Foundry](https://book.getfoundry.sh/getting-started/installation) (forge, cast, anvil)
+- WalletConnect Project ID from [cloud.walletconnect.com](https://cloud.walletconnect.com)
 - Uniswap API key from [developers.uniswap.org](https://developers.uniswap.org)
 - KeeperHub API key (`kh_`) from [keeperhub.com](https://keeperhub.com)
 - Upstash Redis database from [upstash.com](https://upstash.com) (free tier)
-- OpenRouter API key from [openrouter.ai](https://openrouter.ai)
+- LLM API key: [Anthropic](https://console.anthropic.com) or [OpenRouter](https://openrouter.ai)
 
 ```bash
 # Clone the repository
@@ -160,7 +216,11 @@ npx tsc --noEmit       # Type-check
 
 # Start the dashboard (local dev)
 cd ../frontend
+npm install --legacy-peer-deps
 npm run dev
+
+# Run frontend tests
+npx vitest run         # 66 tests across 14 files
 ```
 
 ### Deploy to Vercel
@@ -203,7 +263,13 @@ open-agent/
 │   │       ├── storage/     # Redis client + 0G memory persistence
 │   │       ├── utils/       # LLM client (OpenRouter), IL math
 │   │       └── graph/       # Pipeline orchestration (runPipeline)
-│   └── frontend/            # Next.js dashboard (not started)
+│   └── frontend/            # Next.js 14 dashboard (66 tests across 14 files)
+│       └── src/
+│           ├── app/         # Pages: Command, Opportunities, Agents, Risk, History, Vaults, Settings
+│           ├── components/  # App shell, providers, strategy cards, dialogs
+│           ├── hooks/       # useWallet, useAppMode
+│           ├── lib/         # wagmi config, feature flags
+│           └── mocks/       # Faker-based mock data generators
 ├── .env.example
 └── README.md
 ```
