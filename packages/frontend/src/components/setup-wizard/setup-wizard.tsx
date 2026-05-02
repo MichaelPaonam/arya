@@ -59,10 +59,15 @@ export function SetupWizard() {
     writeContract: writeSessionKey,
     data: sessionKeyHash,
     isPending: isSessionKeyPending,
+    error: sessionKeyError,
   } = useWriteContract();
 
   const { isLoading: isSessionKeyConfirming, isSuccess: isSessionKeySuccess } =
     useWaitForTransactionReceipt({ hash: sessionKeyHash });
+
+  useEffect(() => {
+    if (sessionKeyError) console.error("[SessionKey] writeContract error:", sessionKeyError);
+  }, [sessionKeyError]);
 
   const [provider, setProvider] = useState<"anthropic" | "openrouter" | "managed">("anthropic");
   const [apiKey, setApiKey] = useState("");
@@ -88,28 +93,42 @@ export function SetupWizard() {
     });
   }
 
+  const [localError, setLocalError] = useState<string | null>(null);
+
   function handleGrantSessionKey() {
+    setLocalError(null);
+    if (!isConnected) {
+      setLocalError("Wallet not connected");
+      return;
+    }
     const backendEOA = process.env.NEXT_PUBLIC_SESSION_KEY_ADDRESS ?? "0xc1Ac7fd08367321b5d486a81349Ab1CB793aF0C1";
-    const zgFlowAddress = process.env.NEXT_PUBLIC_ZG_FLOW_ADDRESS ?? "0xbD2C3F0E65eDF5582141C35969d66e34e4ef3fD0";
+    const zgFlowAddress = process.env.NEXT_PUBLIC_ZG_FLOW_ADDRESS ?? "0xBD2C3f0E65eDF5582141C35969D66E34e4Ef3fd0";
     const sevenDays = BigInt(Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60);
     const now = BigInt(Math.floor(Date.now() / 1000));
 
-    writeSessionKey({
-      address: SESSION_KEY_MODULE.address,
-      abi: SESSION_KEY_MODULE.abi,
-      functionName: "grantSessionKey",
-      args: [
-        backendEOA as `0x${string}`,
-        {
-          maxSpendPerTx: BigInt("10000000000000000"),
-          maxTotalSpend: BigInt("100000000000000000"),
-          allowedTargets: [zgFlowAddress as `0x${string}`],
-          validUntil: sevenDays,
-          validAfter: now,
-          totalSpent: 0n,
-        },
-      ],
-    });
+    try {
+      writeSessionKey({
+        address: SESSION_KEY_MODULE.address,
+        abi: SESSION_KEY_MODULE.abi,
+        functionName: "grantSessionKey",
+        chainId: 16602,
+        args: [
+          backendEOA as `0x${string}`,
+          {
+            maxSpendPerTx: BigInt("10000000000000000"),
+            maxTotalSpend: BigInt("100000000000000000"),
+            allowedTargets: [zgFlowAddress as `0x${string}`],
+            validUntil: sevenDays,
+            validAfter: now,
+            totalSpent: 0n,
+          },
+        ],
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setLocalError(msg);
+      console.error("[SessionKey] sync error:", e);
+    }
   }
 
   function handleLLMSave() {
@@ -282,6 +301,12 @@ export function SetupWizard() {
               >
                 Grant Session Key
               </button>
+            )}
+            {(sessionKeyError || localError) && (
+              <div className="w-full rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-left">
+                <p className="text-xs font-medium text-destructive">Transaction failed</p>
+                <p className="mt-1 text-[10px] text-destructive/80 break-all">{(sessionKeyError?.message ?? localError ?? "").slice(0, 300)}</p>
+              </div>
             )}
             <button
               onClick={() => setStep("llm-config")}

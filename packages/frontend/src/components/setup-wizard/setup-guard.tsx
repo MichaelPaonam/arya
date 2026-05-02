@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useWalletMounted } from "@/hooks/use-wallet";
 import { YIELD_SWARM_REGISTRY } from "@/lib/contracts";
 
-function useNeedsSetup() {
+function useNeedsSetup(pathname: string) {
   const { address, isConnected } = useAccount();
   const [checked, setChecked] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
@@ -22,8 +22,14 @@ function useNeedsSetup() {
   useEffect(() => {
     const initialized = localStorage.getItem("arya-swarm-initialized");
 
+    if (initialized) {
+      setNeedsSetup(false);
+      setChecked(true);
+      return;
+    }
+
     if (!isConnected) {
-      setNeedsSetup(!initialized);
+      setNeedsSetup(true);
       setChecked(true);
       return;
     }
@@ -37,9 +43,9 @@ function useNeedsSetup() {
       return;
     }
 
-    setNeedsSetup(!initialized);
+    setNeedsSetup(true);
     setChecked(true);
-  }, [isConnected, isLoading, swarmMembers]);
+  }, [isConnected, isLoading, swarmMembers, pathname]);
 
   return { checked, needsSetup };
 }
@@ -48,18 +54,19 @@ export function SetupGuard({ children }: { children: React.ReactNode }) {
   const mounted = useWalletMounted();
   const router = useRouter();
   const pathname = usePathname();
-  const { checked, needsSetup } = useNeedsSetup();
+  const { checked, needsSetup } = useNeedsSetup(pathname);
 
   useEffect(() => {
     if (!mounted || !checked) return;
     if (pathname === "/app/setup") return;
+    if (localStorage.getItem("arya-swarm-initialized")) return;
     if (needsSetup) {
       router.replace("/app/setup");
     }
   }, [mounted, checked, needsSetup, pathname, router]);
 
   if (!mounted || !checked) return null;
-  if (needsSetup && pathname !== "/app/setup") return null;
+  if (needsSetup && pathname !== "/app/setup" && !localStorage.getItem("arya-swarm-initialized")) return null;
 
   return <>{children}</>;
 }
