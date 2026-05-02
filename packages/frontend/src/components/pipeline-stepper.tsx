@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Search, ShieldCheck, MessageSquare, Network, Zap, CheckCircle2 } from "lucide-react";
 import type { PipelinePhase } from "@/types/pipeline";
 
@@ -21,32 +20,17 @@ export function PipelineStepper({
   currentPhase: PipelinePhase | null;
   isLoading: boolean;
 }) {
-  const [simulatedIndex, setSimulatedIndex] = useState(0);
-
-  useEffect(() => {
-    if (!isLoading) {
-      setSimulatedIndex(0);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setSimulatedIndex((i) => (i < phaseOrder.length - 1 ? i + 1 : i));
-    }, 1500);
-
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  const activeIndex = isLoading
-    ? simulatedIndex
-    : currentPhase === "complete"
-      ? phaseOrder.length
-      : phaseOrder.indexOf(currentPhase || "scout");
+  const activeIndex = currentPhase === "complete"
+    ? phaseOrder.length
+    : currentPhase
+      ? phaseOrder.indexOf(currentPhase)
+      : -1;
 
   return (
     <div className="glass p-5">
       <div className="flex items-center justify-between gap-2">
         {phases.map((phase, i) => {
-          const isComplete = i < activeIndex;
+          const isComplete = activeIndex > i;
           const isActive = i === activeIndex && isLoading;
           const Icon = isComplete ? CheckCircle2 : phase.icon;
 
