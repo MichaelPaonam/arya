@@ -261,8 +261,13 @@ export async function duplicateWorkflow(templateId: string): Promise<FullWorkflo
 }
 
 export async function publishWorkflow(id: string): Promise<PublishResult> {
-  const json = await keeperhubRequest("PUT", `/workflows/${id}/go-live`);
-  return PublishResultSchema.parse(json);
+  const json = await keeperhubRequest("PATCH", `/workflows/${id}`, { enabled: true });
+  const result = json as Record<string, unknown>;
+  return PublishResultSchema.parse({
+    id: result["id"],
+    status: result["enabled"] ? "live" : "disabled",
+    publishedAt: result["updatedAt"] ?? new Date().toISOString(),
+  });
 }
 
 export async function createWorkflowFromTemplate(params: CreateWorkflowFromTemplateParams): Promise<Workflow> {
