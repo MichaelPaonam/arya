@@ -107,7 +107,6 @@ export default function CommandCenterPage() {
 
   const handleApproveAll = () => {
     if (isConnected && proposals.length > 0) {
-      // Approve first proposal on-chain, rest will follow
       setApprovingId(proposals[0].id);
       vault.approveOnChain(proposals[0].id);
     } else {

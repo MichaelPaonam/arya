@@ -1,5 +1,5 @@
 export const YIELD_SWARM_REGISTRY = {
-  address: "0xFa07708964b3a5368A6a31cBBf77bA028B880326" as `0x${string}`,
+  address: "0x83A2bda1f2514871E805A59bA6448ec2346e2C03" as `0x${string}`,
   abi: [
     {
       name: "requestSwarm",
@@ -50,7 +50,7 @@ export const YIELD_SWARM_REGISTRY = {
 } as const;
 
 export const SMART_ACCOUNT_FACTORY = {
-  address: "0x47BbAcd9af01f5527255bd095193f0416a7eA482" as `0x${string}`,
+  address: "0x06a148eD3F8Da650a9BDd37a12a75ae960c79e40" as `0x${string}`,
   abi: [
     {
       name: "createAccount",
@@ -79,8 +79,25 @@ export const AGENT_TYPES = ["scout", "risk", "orchestrator", "executor"] as cons
 export type AgentType = (typeof AGENT_TYPES)[number];
 
 export const STRATEGY_VAULT = {
-  address: "0x361B475a6F7db85eBc53B12d6b865297963735e6" as `0x${string}`,
+  address: "0xFB7382DEc0D8B161594742cE7F6d32025729B25B" as `0x${string}`,
   abi: [
+    {
+      name: "proposeStrategy",
+      type: "function",
+      stateMutability: "nonpayable",
+      inputs: [
+        { name: "strategyId", type: "bytes32" },
+        { name: "actions", type: "tuple[]", components: [
+          { name: "target", type: "address" },
+          { name: "value", type: "uint256" },
+          { name: "calldata_", type: "bytes" },
+          { name: "minAmountOut", type: "uint256" },
+        ]},
+        { name: "estimatedAPY", type: "uint256" },
+        { name: "riskScore", type: "uint8" },
+      ],
+      outputs: [],
+    },
     {
       name: "approveStrategy",
       type: "function",
@@ -159,7 +176,7 @@ export const STRATEGY_VAULT = {
 } as const;
 
 export const SESSION_KEY_MODULE = {
-  address: "0x00fbF00218dE2FC03D7b39314447B52cc28D6544" as `0x${string}`,
+  address: "0x01be109884a05e29b4e073F0fa23D825393d0fB6" as `0x${string}`,
   abi: [
     {
       name: "grantSessionKey",
