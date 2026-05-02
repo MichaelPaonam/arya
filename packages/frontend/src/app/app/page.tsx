@@ -81,7 +81,9 @@ export default function CommandCenterPage() {
     const confStored = localStorage.getItem("arya-min-confidence");
     const minConfidence = confStored ? parseFloat(confStored) : 0.4;
     const poolFilter = localStorage.getItem("arya-pool-filter") || "all";
-    await trigger("0xc1Ac7fd08367321b5d486a81349Ab1CB793aF0C1", { maxRiskScore, minConfidence, poolFilter });
+    const poolLimitStored = localStorage.getItem("arya-pool-limit");
+    const poolLimit = poolLimitStored ? parseInt(poolLimitStored, 10) : 3;
+    await trigger("0xc1Ac7fd08367321b5d486a81349Ab1CB793aF0C1", { maxRiskScore, minConfidence, poolFilter, poolLimit });
   };
 
   const handleApproveAll = () => {

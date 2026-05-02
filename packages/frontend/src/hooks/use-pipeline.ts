@@ -12,7 +12,7 @@ export interface UsePipelineReturn {
   proposals: StrategyProposal[];
   executionResults: ExecutionResult[];
   isExecuting: boolean;
-  trigger: (walletAddress: string, options?: { maxRiskScore?: number; minConfidence?: number; poolFilter?: string }) => Promise<void>;
+  trigger: (walletAddress: string, options?: { maxRiskScore?: number; minConfidence?: number; poolFilter?: string; poolLimit?: number }) => Promise<void>;
   approve: (proposals: StrategyProposal[], amounts: Record<string, string>) => Promise<void>;
   reject: () => void;
   reset: () => void;
@@ -30,7 +30,7 @@ export function usePipeline(): UsePipelineReturn {
   const abortRef = useRef<AbortController | null>(null);
   const walletRef = useRef<string>("");
 
-  const trigger = useCallback(async (walletAddress: string, options?: { maxRiskScore?: number; minConfidence?: number; poolFilter?: string }) => {
+  const trigger = useCallback(async (walletAddress: string, options?: { maxRiskScore?: number; minConfidence?: number; poolFilter?: string; poolLimit?: number }) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -58,6 +58,7 @@ export function usePipeline(): UsePipelineReturn {
           maxRiskScore: options?.maxRiskScore,
           minConfidence: options?.minConfidence,
           poolFilter: options?.poolFilter,
+          poolLimit: options?.poolLimit,
           llmProvider,
           llmApiKey,
           llmModel,

@@ -11,7 +11,7 @@ const DEFAULT_AGENT_IDS = {
 
 export async function POST(req: Request) {
   try {
-    const { walletAddress, chainId, maxRiskScore, minConfidence, poolFilter, llmProvider, llmApiKey, llmModel, llmBaseUrl } = await req.json();
+    const { walletAddress, chainId, maxRiskScore, minConfidence, poolFilter, poolLimit, llmProvider, llmApiKey, llmModel, llmBaseUrl } = await req.json();
 
     if (!walletAddress) {
       return Response.json({ error: "walletAddress is required" }, { status: 400 });
@@ -47,6 +47,7 @@ export async function POST(req: Request) {
           maxRiskScore: maxRiskScore ?? undefined,
           minConfidence: minConfidence ?? undefined,
           poolFilter: poolFilter ?? undefined,
+          poolLimit: poolLimit ?? undefined,
           llm,
           onEvent: emit,
         };
