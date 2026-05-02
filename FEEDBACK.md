@@ -41,4 +41,4 @@ A multi-agent AI swarm that discovers, evaluates, and executes DeFi yield strate
 
 ## Team
 
-Solo developer — Michael Paonam
+ARYA Autonomous Realtime Yield Agents
