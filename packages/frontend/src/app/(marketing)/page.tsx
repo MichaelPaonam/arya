@@ -22,7 +22,7 @@ const agents = [
   {
     icon: Search,
     name: "Scout",
-    desc: "Scans hundreds of protocols 24/7 for emerging yield opportunities across chains.",
+    desc: "Surfaces yield opportunities across DeFi — the ones worth your attention, not the noise.",
   },
   {
     icon: ShieldCheck,
@@ -32,7 +32,7 @@ const agents = [
   {
     icon: Network,
     name: "Orchestrator",
-    desc: "Coordinates the swarm and packages findings into actionable, ranked proposals.",
+    desc: "Coordinates the swarm, runs adversarial debate, and packages findings into ranked proposals.",
   },
   {
     icon: Zap,
@@ -42,17 +42,17 @@ const agents = [
 ];
 
 const tiers = [
-  { name: "Bronze", desc: "Default tier — every new swarm starts here.", glow: "bg-[oklch(0.65_0.14_55/0.18)] text-[oklch(0.45_0.13_55)] dark:text-[oklch(0.85_0.13_75)]" },
-  { name: "Silver", desc: ">70% win rate · 100 strategies", glow: "bg-[oklch(0.65_0.02_240/0.18)] text-[oklch(0.40_0.02_240)] dark:text-[oklch(0.92_0.02_240)]" },
-  { name: "Gold", desc: ">80% win rate · 150 strategies", glow: "bg-[oklch(0.75_0.16_85/0.18)] text-[oklch(0.48_0.15_75)] dark:text-[oklch(0.88_0.15_85)]" },
-  { name: "Platinum", desc: ">90% · 200 strategies · export-ready", glow: "bg-secondary/15 text-secondary dark:text-secondary" },
+  { name: "Bronze", desc: "Every swarm starts here. Prove the basics.", glow: "bg-[oklch(0.65_0.14_55/0.18)] text-[oklch(0.45_0.13_55)] dark:text-[oklch(0.85_0.13_75)]" },
+  { name: "Silver", desc: "Consistent performers. Fewer false positives.", glow: "bg-[oklch(0.65_0.02_240/0.18)] text-[oklch(0.40_0.02_240)] dark:text-[oklch(0.92_0.02_240)]" },
+  { name: "Gold", desc: "High-conviction strategies. The swarm has learned your risk appetite.", glow: "bg-[oklch(0.75_0.16_85/0.18)] text-[oklch(0.48_0.15_75)] dark:text-[oklch(0.88_0.15_85)]" },
+  { name: "Platinum", desc: "Battle-tested. A track record that speaks for itself.", glow: "bg-secondary/15 text-secondary dark:text-secondary" },
 ];
 
 const problems = [
-  { title: "Information overload", body: "Hundreds of pools across dozens of protocols. APYs shift hourly." },
-  { title: "Expertise barrier", body: "Evaluating IL, contract risk, and correlation requires deep DeFi knowledge." },
-  { title: "Execution complexity", body: "Finding an opportunity is step one. Monitoring and rebalancing is full-time." },
-  { title: "Trust problem", body: "Autonomous fund managers ask for keys. One bad output drains a wallet." },
+  { title: "Steep learning curve", body: "IL, TVL, APR vs APY, slippage, liquidity depth — and that's before you pick a pool." },
+  { title: "Trust deficit", body: "Every week another rug, exploit, or 'autonomous' bot that drains a wallet. Skepticism is rational." },
+  { title: "Decision paralysis", body: "Hundreds of pools, dozens of chains, yields that shift hourly. Doing nothing feels safer than choosing wrong." },
+  { title: "No guardrails", body: "Most tools either oversimplify or hand you raw contracts. Nothing sits between 'do your own research' and 'trust me bro.'" },
 ];
 
 const fadeUp: Variants = {
@@ -152,13 +152,12 @@ export default function LandingPage() {
             Autonomous · Verifiable · Human-in-the-Loop
           </motion.div>
           <motion.h1 variants={fadeUp} className="text-display mt-7">
-            The proving ground for{" "}
-            <span className="text-secondary">autonomous DeFi agents</span>.
+            Yield strategies you&apos;d trust enough to{" "}
+            <span className="text-secondary">sign</span>.
           </motion.h1>
           <motion.p variants={fadeUp} className="mx-auto mt-6 max-w-2xl text-lg text-on-surface-variant">
-            AI swarms compete on real capital, build verifiable on-chain track records, and
-            earn portable credentials for external capital allocation. You stay in control —
-            no opportunity reaches your wallet without explicit approval.
+            Four AI agents analyze, debate, and propose DeFi strategies — then wait for
+            your call. Every action is gated on-chain. Nothing moves without your signature.
           </motion.p>
           <motion.div variants={fadeUp} className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -207,10 +206,10 @@ export default function LandingPage() {
         <motion.div variants={fadeUp} className="max-w-2xl">
           <div className="label-eyebrow">The Problem</div>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-            DeFi yield is a full-time job — and a trust minefield.
+            Crypto wasn&apos;t built for normal decision-making.
           </h2>
           <p className="mt-4 text-on-surface-variant">
-            The market needs AI that does the analysis without touching the funds.
+            Too many concepts, too many variables, too little reason to trust any of it.
           </p>
         </motion.div>
         <div className="mt-10 grid gap-4 md:grid-cols-2">
@@ -233,12 +232,12 @@ export default function LandingPage() {
         <motion.div variants={fadeUp} className="max-w-2xl">
           <div className="label-eyebrow">The Solution</div>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-            A swarm of four agents. One human in control.
+            AI that does the homework. You keep the final say.
           </h2>
           <p className="mt-4 text-on-surface-variant">
-            Specialized AI agents collaboratively discover, evaluate, and execute yield
-            strategies. Every action is gated by an on-chain approval — architecturally
-            immovable, enforced by <span className="text-mono text-secondary">StrategyVault.sol</span>.
+            Four specialized agents handle the complexity — scanning protocols, scoring risk,
+            debating trade-offs, and building executable strategies. You see the reasoning,
+            not just a number. And nothing touches your wallet until you explicitly approve it.
           </p>
         </motion.div>
 
@@ -289,17 +288,16 @@ export default function LandingPage() {
           <motion.div variants={fadeUp}>
             <div className="label-eyebrow">The Edge</div>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              ARYA provides the rails. Your reasoning provides the edge.
+              Same infrastructure. Your reasoning is the edge.
             </h2>
             <p className="mt-4 text-on-surface-variant">
-              Every agent gets the same data, the same risk math, the same execution
-              infrastructure. What separates Bronze from Platinum is the quality of the LLM
-              reasoning — multi-step risk analysis, market regime awareness, adversarial
-              debate.
+              Every swarm gets the same data feeds, the same risk math, the same execution
+              rails. What separates Bronze from Platinum is the quality of reasoning —
+              multi-step risk analysis, market regime awareness, adversarial debate between
+              agents.
             </p>
             <p className="mt-4 text-on-surface-variant">
-              A skill-based competition on a fair playing field. Premium models graduate
-              ~2–3x faster.
+              Higher-reasoning models produce sharper risk analysis and graduate faster.
             </p>
           </motion.div>
 
@@ -339,7 +337,7 @@ export default function LandingPage() {
             <span className="label-eyebrow">Graduation Ladder</span>
           </div>
           <h3 className="mt-3 text-2xl font-semibold text-foreground">
-            Climb the tiers. Earn portable credentials.
+            A skill-based ladder. Earned, not bought.
           </h3>
           <motion.div
             className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
@@ -368,18 +366,18 @@ export default function LandingPage() {
       {/* Flywheel */}
       <MotionSection id="flywheel" className="mx-auto max-w-7xl px-6 py-20 sm:px-10">
         <motion.div variants={fadeUp} className="max-w-2xl">
-          <div className="label-eyebrow">Train · Grow · Monetize</div>
+          <div className="label-eyebrow">Train · Grow · Prove</div>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-            The flywheel that turns approvals into credentials.
+            Every approval teaches. Every outcome is logged on-chain.
           </h2>
         </motion.div>
 
         <ol className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[
-            { n: "01", t: "Connect wallet", b: "Agents start surfacing strategies tuned to the swarm's defaults." },
-            { n: "02", t: "Approve or reject", b: "Every decision trains the swarm to your risk profile." },
+            { n: "01", t: "Connect wallet", b: "Your swarm spins up and starts surfacing strategies immediately." },
+            { n: "02", t: "Approve or reject", b: "Every decision sharpens the swarm's understanding of your risk appetite." },
             { n: "03", t: "Build the record", b: "AgentReputation.sol logs predicted vs actual return, basis-point honest." },
-            { n: "04", t: "Graduate & earn", b: "Hit thresholds → portable credentials → external capital venues." },
+            { n: "04", t: "Climb the ladder", b: "Hit performance thresholds, graduate tiers, build a track record that compounds." },
           ].map((s) => (
             <motion.li
               key={s.n}
