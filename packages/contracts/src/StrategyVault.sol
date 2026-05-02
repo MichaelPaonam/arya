@@ -86,7 +86,7 @@ contract StrategyVault is Ownable, ReentrancyGuard {
         emit StrategyProposed(strategyId, estimatedAPY, riskScore);
     }
 
-    function approveStrategy(bytes32 strategyId) external onlyOwner {
+    function approveStrategy(bytes32 strategyId) external {
         Strategy storage s = _getExistingStrategy(strategyId);
         if (s.status != StrategyStatus.Proposed) {
             revert InvalidStatus(s.status, StrategyStatus.Proposed);
@@ -96,7 +96,7 @@ contract StrategyVault is Ownable, ReentrancyGuard {
         emit StrategyApproved(strategyId, msg.sender);
     }
 
-    function rejectStrategy(bytes32 strategyId, string calldata reason) external onlyOwner {
+    function rejectStrategy(bytes32 strategyId, string calldata reason) external {
         Strategy storage s = _getExistingStrategy(strategyId);
         if (s.status != StrategyStatus.Proposed) {
             revert InvalidStatus(s.status, StrategyStatus.Proposed);

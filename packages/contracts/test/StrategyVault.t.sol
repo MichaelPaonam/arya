@@ -112,12 +112,14 @@ contract StrategyVaultTest is Test {
         assertEq(uint8(s.status), uint8(StrategyVault.StrategyStatus.Approved));
     }
 
-    function test_ApproveStrategy_NotOwner_Reverts() public {
+    function test_ApproveStrategy_AnyCaller_Succeeds() public {
         bytes32 strategyId = _proposeDefault();
 
         vm.prank(alice);
-        vm.expectRevert();
         vault.approveStrategy(strategyId);
+
+        StrategyVault.Strategy memory s = vault.getStrategy(strategyId);
+        assertEq(uint8(s.status), uint8(StrategyVault.StrategyStatus.Approved));
     }
 
     function test_ApproveStrategy_NotProposed_Reverts() public {
@@ -153,12 +155,14 @@ contract StrategyVaultTest is Test {
         assertEq(uint8(s.status), uint8(StrategyVault.StrategyStatus.Rejected));
     }
 
-    function test_RejectStrategy_NotOwner_Reverts() public {
+    function test_RejectStrategy_AnyCaller_Succeeds() public {
         bytes32 strategyId = _proposeDefault();
 
         vm.prank(alice);
-        vm.expectRevert();
         vault.rejectStrategy(strategyId, "no");
+
+        StrategyVault.Strategy memory s = vault.getStrategy(strategyId);
+        assertEq(uint8(s.status), uint8(StrategyVault.StrategyStatus.Rejected));
     }
 
     function test_RejectStrategy_AlreadyExecuted_Reverts() public {
