@@ -16,8 +16,6 @@ describe("feature-flags", () => {
       expect(isEnabled("tierProgression", "hackathon")).toBe(false);
       expect(isEnabled("leaderboard", "hackathon")).toBe(false);
       expect(isEnabled("settingsPage", "hackathon")).toBe(false);
-      expect(isEnabled("historyPage", "hackathon")).toBe(false);
-      expect(isEnabled("vaultsPage", "hackathon")).toBe(false);
     });
 
     it("returns true for all features in full mode", () => {
@@ -33,8 +31,9 @@ describe("feature-flags", () => {
       const features = getEnabledFeatures("hackathon");
       expect(features).toContain("opportunityDiscovery");
       expect(features).toContain("riskAssessment");
+      expect(features).toContain("historyPage");
+      expect(features).toContain("vaultsPage");
       expect(features).not.toContain("portfolioTracking");
-      expect(features).not.toContain("historyPage");
     });
 
     it("returns all features in full mode", () => {

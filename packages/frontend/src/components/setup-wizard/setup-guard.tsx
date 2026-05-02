@@ -11,7 +11,7 @@ function SetupRedirect() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const { data: swarmMembers } = useReadContract({
+  const { data: swarmMembers, isLoading } = useReadContract({
     address: YIELD_SWARM_REGISTRY.address,
     abi: YIELD_SWARM_REGISTRY.abi,
     functionName: "getSwarmMembers",
@@ -22,8 +22,8 @@ function SetupRedirect() {
   useEffect(() => {
     if (!isConnected) return;
     if (pathname === "/app/setup") return;
+    if (isLoading) return;
 
-    // If on-chain data shows agents exist, mark as initialized
     if (swarmMembers && (swarmMembers as unknown[]).length > 0) {
       localStorage.setItem("arya-swarm-initialized", "true");
       return;
@@ -33,7 +33,7 @@ function SetupRedirect() {
     if (!initialized) {
       router.replace("/app/setup");
     }
-  }, [isConnected, pathname, router, swarmMembers]);
+  }, [isConnected, isLoading, pathname, router, swarmMembers]);
 
   return null;
 }

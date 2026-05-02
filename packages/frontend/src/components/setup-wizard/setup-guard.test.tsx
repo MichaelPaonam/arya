@@ -7,6 +7,7 @@ let mockPathname = "/app";
 let mockMounted = true;
 let mockIsConnected = true;
 let mockSwarmMembers: unknown[] = [];
+let mockIsReadLoading = false;
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockReplace }),
@@ -19,7 +20,7 @@ vi.mock("@/hooks/use-wallet", () => ({
 
 vi.mock("wagmi", () => ({
   useAccount: () => ({ address: "0x1234567890abcdef1234567890abcdef12345678", isConnected: mockIsConnected }),
-  useReadContract: () => ({ data: mockSwarmMembers }),
+  useReadContract: () => ({ data: mockSwarmMembers, isLoading: mockIsReadLoading }),
 }));
 
 describe("SetupGuard", () => {
@@ -29,6 +30,7 @@ describe("SetupGuard", () => {
     mockMounted = true;
     mockIsConnected = true;
     mockSwarmMembers = [];
+    mockIsReadLoading = false;
     localStorage.clear();
   });
 
@@ -66,6 +68,12 @@ describe("SetupGuard", () => {
     render(<SetupGuard><div>child</div></SetupGuard>);
     expect(mockReplace).not.toHaveBeenCalled();
     expect(localStorage.getItem("arya-swarm-initialized")).toBe("true");
+  });
+
+  it("does not redirect when on-chain query is still loading", () => {
+    mockIsReadLoading = true;
+    render(<SetupGuard><div>child</div></SetupGuard>);
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   it("renders children regardless of state", () => {

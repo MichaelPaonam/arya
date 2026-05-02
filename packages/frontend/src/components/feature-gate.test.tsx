@@ -28,11 +28,11 @@ describe("FeatureGate", () => {
 
   it("renders fallback when feature is disabled", () => {
     renderWithMode(
-      <FeatureGate feature="historyPage" fallback={<span>Coming soon</span>}>
-        <span>History</span>
+      <FeatureGate feature="settingsPage" fallback={<span>Coming soon</span>}>
+        <span>Settings</span>
       </FeatureGate>
     );
-    expect(screen.queryByText("History")).not.toBeInTheDocument();
+    expect(screen.queryByText("Settings")).not.toBeInTheDocument();
     expect(screen.getByText("Coming soon")).toBeInTheDocument();
   });
 });
