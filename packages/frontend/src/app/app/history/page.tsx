@@ -1,6 +1,9 @@
 "use client";
 
 import { AppShell } from "@/components/app-shell";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PlaceholderStat } from "@/components/ui/placeholder-stat";
+import { useAppMode } from "@/hooks/use-app-mode";
 import { CheckCircle2, XCircle, Clock, ArrowRight, ExternalLink } from "lucide-react";
 
 type Status = "executed" | "rejected" | "pending";
@@ -23,6 +26,30 @@ const statusMap: Record<Status, { icon: typeof CheckCircle2; cls: string; label:
 };
 
 export default function HistoryPage() {
+  const { mode } = useAppMode();
+
+  if (mode === "hackathon") {
+    return (
+      <AppShell eyebrow="Audit Trail" title="Activity History">
+        <section className="mt-7 grid gap-4 md:grid-cols-4">
+          <PlaceholderStat label="Total Transactions" hint="All time" />
+          <PlaceholderStat label="Success Rate" hint="Executed / total" />
+          <PlaceholderStat label="Gas Spent" hint="Cumulative" />
+          <PlaceholderStat label="Last Activity" hint="Most recent" />
+        </section>
+        <section className="mt-5">
+          <EmptyState
+            icon={Clock}
+            eyebrow="History"
+            title="No activity yet"
+            description="Your transaction history will appear here once agents begin executing approved strategies."
+            primaryAction={{ label: "Go to Command Center", href: "/app" }}
+          />
+        </section>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell eyebrow="Audit Trail" title="Activity History">
       <section className="mt-7 grid gap-4 md:grid-cols-4">

@@ -28,14 +28,7 @@ export default function SettingsPage() {
           </button>
         </Card>
 
-        <Card icon={ShieldCheck} title="Risk Limits" desc="Hard caps the swarm cannot cross.">
-          <Slider label="Max single position" value="18%" />
-          <Slider label="Max protocol exposure" value="35%" />
-          <Slider label="Max high-risk allocation" value="12%" />
-          <Field label="Auto-reject threshold">
-            <span className="text-mono text-sm font-semibold text-warning">Risk score &gt; 75</span>
-          </Field>
-        </Card>
+        <RiskLimitsCard />
 
         <Card icon={Bell} title="Notifications" desc="Where the swarm pings you for approval.">
           <Toggle label="Browser push" enabled />
@@ -149,7 +142,104 @@ function KeyRow({ agent, scope, expiry }: { agent: string; scope: string; expiry
   );
 }
 
+function RiskLimitsCard() {
+  const [maxRiskScore, setMaxRiskScore] = useState(() => {
+    if (typeof window === "undefined") return 7;
+    const stored = localStorage.getItem("arya-max-risk-score");
+    return stored ? parseInt(stored, 10) : 7;
+  });
+
+  const [minConfidence, setMinConfidence] = useState(() => {
+    if (typeof window === "undefined") return 0.4;
+    const stored = localStorage.getItem("arya-min-confidence");
+    return stored ? parseFloat(stored) : 0.4;
+  });
+
+  const [poolFilter, setPoolFilter] = useState(() => {
+    if (typeof window === "undefined") return "all";
+    return localStorage.getItem("arya-pool-filter") || "all";
+  });
+
+  const handleRiskChange = (value: number) => {
+    setMaxRiskScore(value);
+    localStorage.setItem("arya-max-risk-score", String(value));
+  };
+
+  const handleConfidenceChange = (value: number) => {
+    setMinConfidence(value);
+    localStorage.setItem("arya-min-confidence", String(value));
+  };
+
+  const handlePoolFilterChange = (value: string) => {
+    setPoolFilter(value);
+    localStorage.setItem("arya-pool-filter", value);
+  };
+
+  return (
+    <Card icon={ShieldCheck} title="Risk Limits" desc="Hard caps the swarm cannot cross.">
+      <div className="rounded-lg border border-border bg-foreground/5 px-3.5 py-3">
+        <div className="label-eyebrow mb-2">Pool filter</div>
+        <div className="flex gap-1">
+          {(["all", "stable", "bluechip"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => handlePoolFilterChange(f)}
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition ${poolFilter === f ? "bg-secondary/20 text-secondary" : "text-on-surface-variant hover:text-foreground"}`}
+            >
+              {f === "all" ? "All pools" : f === "stable" ? "Stablecoins" : "Blue chip"}
+            </button>
+          ))}
+        </div>
+        <div className="mt-1.5 text-[10px] text-on-surface-variant">
+          {poolFilter === "all" && "Top APY pools (higher risk, higher reward)"}
+          {poolFilter === "stable" && "Stablecoin pairs only — low IL, APY ≤ 30%"}
+          {poolFilter === "bluechip" && "TVL > $50M, APY ≤ 50% — established protocols"}
+        </div>
+      </div>
+      <div className="rounded-lg border border-border bg-foreground/5 px-3.5 py-3">
+        <div className="flex items-center justify-between">
+          <span className="label-eyebrow">Max risk score</span>
+          <span className="text-mono text-sm font-semibold text-secondary">{maxRiskScore} / 10</span>
+        </div>
+        <input
+          type="range"
+          min={1}
+          max={10}
+          step={1}
+          value={maxRiskScore}
+          onChange={(e) => handleRiskChange(parseInt(e.target.value, 10))}
+          className="mt-2 w-full accent-secondary"
+        />
+        <div className="mt-1 flex justify-between text-[10px] text-on-surface-variant">
+          <span>Conservative</span>
+          <span>Aggressive</span>
+        </div>
+      </div>
+      <div className="rounded-lg border border-border bg-foreground/5 px-3.5 py-3">
+        <div className="flex items-center justify-between">
+          <span className="label-eyebrow">Min confidence</span>
+          <span className="text-mono text-sm font-semibold text-secondary">{minConfidence.toFixed(1)}</span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.1}
+          value={minConfidence}
+          onChange={(e) => handleConfidenceChange(parseFloat(e.target.value))}
+          className="mt-2 w-full accent-secondary"
+        />
+        <div className="mt-1 flex justify-between text-[10px] text-on-surface-variant">
+          <span>Accept all</span>
+          <span>High conviction only</span>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 const ANTHROPIC_MODELS = [
+  { id: "anthropic--claude-haiku-latest", label: "Claude Haiku (latest)" },
   { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
   { id: "claude-sonnet-4-6-20260320", label: "Claude Sonnet 4.6" },
   { id: "claude-opus-4-7-20260401", label: "Claude Opus 4.7" },

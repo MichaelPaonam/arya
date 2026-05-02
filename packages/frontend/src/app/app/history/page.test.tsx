@@ -1,7 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import HistoryPage from "./page";
+
+const mockMode = vi.hoisted(() => ({ current: "full" as "hackathon" | "full" }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/history",
@@ -12,7 +14,7 @@ vi.mock("@/components/theme-provider", () => ({
 }));
 
 vi.mock("@/hooks/use-app-mode", () => ({
-  useAppMode: () => ({ mode: "full", setMode: () => {} }),
+  useAppMode: () => ({ mode: mockMode.current, setMode: vi.fn() }),
   AppModeProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
@@ -20,7 +22,13 @@ vi.mock("@/hooks/use-wallet", () => ({
   useWalletMounted: () => false,
 }));
 
-describe("HistoryPage", () => {
+vi.mock("next/link", () => ({
+  default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
+}));
+
+describe("HistoryPage — full mode", () => {
+  beforeEach(() => { mockMode.current = "full"; });
+
   it("renders page title", () => {
     render(<HistoryPage />);
     expect(screen.getByText("Activity History")).toBeInTheDocument();
@@ -46,5 +54,28 @@ describe("HistoryPage", () => {
     expect(screen.getAllByText("Executed").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Rejected").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Pending").length).toBeGreaterThan(0);
+  });
+});
+
+describe("HistoryPage — hackathon mode", () => {
+  beforeEach(() => { mockMode.current = "hackathon"; });
+
+  it("renders empty state title", () => {
+    render(<HistoryPage />);
+    expect(screen.getByText("No activity yet")).toBeInTheDocument();
+  });
+
+  it("renders placeholder stat labels", () => {
+    render(<HistoryPage />);
+    expect(screen.getByText("Total Transactions")).toBeInTheDocument();
+    expect(screen.getByText("Success Rate")).toBeInTheDocument();
+    expect(screen.getByText("Gas Spent")).toBeInTheDocument();
+    expect(screen.getByText("Last Activity")).toBeInTheDocument();
+  });
+
+  it("does not render event list", () => {
+    render(<HistoryPage />);
+    expect(screen.queryByText("Helios")).not.toBeInTheDocument();
+    expect(screen.queryByText("Transaction History")).not.toBeInTheDocument();
   });
 });

@@ -2,6 +2,9 @@
 
 import { AppShell } from "@/components/app-shell";
 import { RiskBadge } from "@/components/risk-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PlaceholderStat } from "@/components/ui/placeholder-stat";
+import { useAppMode } from "@/hooks/use-app-mode";
 import { ShieldAlert, ShieldCheck, AlertTriangle, Activity } from "lucide-react";
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
@@ -30,6 +33,30 @@ const alerts = [
 ];
 
 export default function RiskPage() {
+  const { mode } = useAppMode();
+
+  if (mode === "hackathon") {
+    return (
+      <AppShell eyebrow="Risk Radar" title="Portfolio Risk">
+        <section className="mt-7 grid gap-4 md:grid-cols-4">
+          <PlaceholderStat label="Portfolio Health" hint="Composite score" />
+          <PlaceholderStat label="IL Exposure" hint="Impermanent loss" />
+          <PlaceholderStat label="Contract Risk" hint="Audit coverage" />
+          <PlaceholderStat label="Liquidity Score" hint="Exit depth" />
+        </section>
+        <section className="mt-5">
+          <EmptyState
+            icon={ShieldCheck}
+            eyebrow="Risk Engine"
+            title="Risk radar will calibrate after your first deposit"
+            description="Once you have positions open, the risk engine will continuously monitor exposure across multiple vectors."
+            primaryAction={{ label: "Open your first vault", href: "/app/vaults" }}
+          />
+        </section>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell eyebrow="Risk Radar" title="Portfolio Risk">
       <section className="mt-7 grid gap-4 md:grid-cols-4">
