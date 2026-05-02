@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useRouter } from "next/navigation";
 import { Search, ShieldCheck, Network, Zap, Wallet, Brain, CheckCircle2, Key } from "lucide-react";
 import { YIELD_SWARM_REGISTRY, SMART_ACCOUNT_FACTORY, SESSION_KEY_MODULE, SMART_ACCOUNT_EXECUTE_ABI } from "@/lib/contracts";
 
-type Step = "welcome" | "smart-account" | "mint-swarm" | "session-key" | "llm-config" | "complete";
+type Step = "connect-wallet" | "smart-account" | "mint-swarm" | "session-key" | "llm-config" | "complete";
 
-const STEPS: Step[] = ["welcome", "smart-account", "mint-swarm", "session-key", "llm-config", "complete"];
+const STEPS: Step[] = ["connect-wallet", "smart-account", "mint-swarm", "session-key", "llm-config", "complete"];
 
-const STEP_LABELS = ["Account", "Agents", "Session Key", "LLM", "Ready"];
+const STEP_LABELS = ["Connect", "Account", "Agents", "Session Key", "LLM", "Ready"];
 
 const AGENT_META = [
   { type: "scout", name: "Scout", icon: Search, desc: "Scans DeFi protocols for yield opportunities" },
@@ -26,9 +27,15 @@ const ANTHROPIC_MODELS = [
 ];
 
 export function SetupWizard() {
-  const [step, setStep] = useState<Step>("welcome");
-  const { address } = useAccount();
+  const [step, setStep] = useState<Step>("connect-wallet");
+  const { address, isConnected } = useAccount();
   const router = useRouter();
+
+  useEffect(() => {
+    if (step === "connect-wallet" && isConnected) {
+      setStep("smart-account");
+    }
+  }, [isConnected, step]);
 
   const {
     writeContract: writeSmartAccount,
@@ -62,10 +69,6 @@ export function SetupWizard() {
   const [model, setModel] = useState(ANTHROPIC_MODELS[0].id);
 
   const currentIndex = STEPS.indexOf(step);
-
-  function handleDeployClick() {
-    setStep("smart-account");
-  }
 
   function handleCreateSmartAccount() {
     if (!address) return;
@@ -133,22 +136,16 @@ export function SetupWizard() {
     <div className="flex flex-col items-center px-6 pt-4">
       {/* Step content card */}
       <div className="glass-elevated w-full max-w-lg p-8">
-        {step === "welcome" && (
+        {step === "connect-wallet" && (
           <div className="flex flex-col items-center gap-6 text-center">
             <div className="glass grid size-16 place-items-center rounded-xl">
-              <Network className="size-8 text-secondary" />
+              <Wallet className="size-8 text-secondary" />
             </div>
-            <h2 className="text-2xl font-semibold tracking-tight">Initialize Your Swarm</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">Welcome to ARYA</h2>
             <p className="text-sm leading-relaxed text-on-surface-variant">
-              ARYA will deploy a smart account and provision 4 AI agents bound to your wallet.
-              You&apos;ll sign two transactions on 0G Testnet.
+              Connect your wallet to get started. Your AI agents will manage DeFi strategies on your behalf — you stay in control.
             </p>
-            <button
-              onClick={handleDeployClick}
-              className="inline-flex h-11 items-center rounded-xl bg-primary px-8 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
-            >
-              Deploy Swarm
-            </button>
+            <ConnectButton />
           </div>
         )}
 
@@ -193,7 +190,7 @@ export function SetupWizard() {
           <div className="flex flex-col gap-6">
             <h2 className="text-center text-2xl font-semibold tracking-tight">Provisioning Agents</h2>
             <p className="text-center text-sm leading-relaxed text-on-surface-variant">
-              Minting 4 iNFT agents to your swarm. ARYA retains ownership; you operate them.
+              Minting 4 iNFT agents to your swarm.
             </p>
             <div className="grid gap-3">
               {AGENT_META.map((agent) => {

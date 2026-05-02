@@ -1,5 +1,5 @@
 export const YIELD_SWARM_REGISTRY = {
-  address: "0xc6ae9fa287f7628a221526bafae9fb96e75b7b1e" as `0x${string}`,
+  address: "0xFa07708964b3a5368A6a31cBBf77bA028B880326" as `0x${string}`,
   abi: [
     {
       name: "requestSwarm",
@@ -50,7 +50,7 @@ export const YIELD_SWARM_REGISTRY = {
 } as const;
 
 export const SMART_ACCOUNT_FACTORY = {
-  address: "0xBb85872CfA2dFa6DB73785d6731241A0653596f6" as `0x${string}`,
+  address: "0x47BbAcd9af01f5527255bd095193f0416a7eA482" as `0x${string}`,
   abi: [
     {
       name: "createAccount",
@@ -79,7 +79,7 @@ export const AGENT_TYPES = ["scout", "risk", "orchestrator", "executor"] as cons
 export type AgentType = (typeof AGENT_TYPES)[number];
 
 export const STRATEGY_VAULT = {
-  address: "0x124332af824893b5030067df01eed6898ff36f51" as `0x${string}`,
+  address: "0x361B475a6F7db85eBc53B12d6b865297963735e6" as `0x${string}`,
   abi: [
     {
       name: "approveStrategy",
@@ -159,7 +159,7 @@ export const STRATEGY_VAULT = {
 } as const;
 
 export const SESSION_KEY_MODULE = {
-  address: "0x69096aa05f5f19dbad0fd43c1b18190a4119a438" as `0x${string}`,
+  address: "0x00fbF00218dE2FC03D7b39314447B52cc28D6544" as `0x${string}`,
   abi: [
     {
       name: "grantSessionKey",
