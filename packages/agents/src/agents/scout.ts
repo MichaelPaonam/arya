@@ -7,6 +7,7 @@ import type { AgentMemoryBlob } from "../types/index.js";
 export interface ScoutAgentInput {
   agentId: string;
   memoryRootHash?: string;
+  poolFilter?: "all" | "stable" | "bluechip";
 }
 
 export interface ScoutAgentOutput {
@@ -29,7 +30,13 @@ export async function scoutAgent(input: ScoutAgentInput): Promise<ScoutAgentOutp
 
   let pools;
   try {
-    pools = await fetchPools({ minTvl: 1_000_000, limit: 20 });
+    const filter = input.poolFilter ?? "all";
+    pools = await fetchPools({
+      minTvl: filter === "bluechip" ? 50_000_000 : 1_000_000,
+      limit: 20,
+      maxApy: filter === "stable" ? 30 : filter === "bluechip" ? 50 : undefined,
+      stablecoinOnly: filter === "stable",
+    });
   } catch (err) {
     return {
       opportunities: [],
@@ -54,7 +61,7 @@ export async function scoutAgent(input: ScoutAgentInput): Promise<ScoutAgentOutp
       },
     ],
     temperature: 0.3,
-    maxTokens: 1024,
+    maxTokens: 4096,
     responseFormat: { type: "json_object" },
   });
 

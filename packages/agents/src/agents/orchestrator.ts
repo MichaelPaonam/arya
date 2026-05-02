@@ -5,12 +5,17 @@ import { getSwapQuote } from "../tools/uniswap.js";
 import { uploadMemory } from "../tools/og-storage.js";
 import { chatCompletion } from "../utils/llm.js";
 
-const CONFIDENCE_THRESHOLD = 0.4;
+const DEFAULT_CONFIDENCE_THRESHOLD = 0.4;
+const DEFAULT_MAX_RISK_SCORE = 7;
 
 export interface OrchestratorAgentInput {
   opportunity: OpportunityFound;
   riskAssessment: RiskAssessment;
   agentId: string;
+  maxRiskScore?: number;
+  minConfidence?: number;
+  chainId?: number;
+  swapper?: string;
   persistState?: boolean;
 }
 
@@ -21,6 +26,15 @@ export interface OrchestratorAgentOutput {
 
 export async function orchestratorAgent(input: OrchestratorAgentInput): Promise<OrchestratorAgentOutput> {
   const { opportunity, riskAssessment, agentId } = input;
+  const maxRisk = input.maxRiskScore ?? DEFAULT_MAX_RISK_SCORE;
+  const minConfidence = input.minConfidence ?? DEFAULT_CONFIDENCE_THRESHOLD;
+
+  if (riskAssessment.riskScore > maxRisk) {
+    return {
+      proposal: null,
+      rejectionReason: `Rejected: risk score too high (${riskAssessment.riskScore}/10, threshold ${maxRisk})`,
+    };
+  }
 
   const tier = selectDebateTier(opportunity, riskAssessment);
 
@@ -33,19 +47,29 @@ export async function orchestratorAgent(input: OrchestratorAgentInput): Promise<
     orchestratorAgentId: agentId,
   });
 
-  if (debateOutcome.confidenceScore < CONFIDENCE_THRESHOLD) {
+  if (debateOutcome.confidenceScore < minConfidence) {
     return {
       proposal: null,
-      rejectionReason: `Rejected: low confidence (${debateOutcome.confidenceScore})`,
+      rejectionReason: `Rejected: low confidence (${debateOutcome.confidenceScore.toFixed(2)}, threshold ${minConfidence})`,
     };
   }
 
-  const quote = await getSwapQuote({
-    tokenIn: opportunity.tokenPair[0]!,
-    tokenOut: opportunity.tokenPair[1]!,
-    amount: "1000000000",
-    chainId: 1,
-  });
+  let quote: { amountOut: string; gasEstimate: string };
+  try {
+    quote = await getSwapQuote({
+      tokenIn: opportunity.tokenPair[0]!,
+      tokenOut: opportunity.tokenPair[1]!,
+      amount: "1000000000",
+      chainId: 1,
+      swapper: input.swapper,
+    });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return {
+      proposal: null,
+      rejectionReason: `Rejected: no swap route available for ${opportunity.tokenPair.join("/")} (${detail})`,
+    };
+  }
 
   const llmResult = await chatCompletion({
     messages: [
