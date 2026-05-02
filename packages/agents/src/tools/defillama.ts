@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getSupportedTokenSymbols } from "./uniswap.js";
 
 export interface PoolData {
   pool: string;
@@ -54,6 +55,8 @@ export async function fetchPools(params: {
   limit: number;
   maxApy?: number;
   stablecoinOnly?: boolean;
+  uniswapOnly?: boolean;
+  chainId?: number;
 }): Promise<PoolData[]> {
   const response = await fetch(`${YIELDS_BASE_URL}/pools`);
   if (!response.ok) {
@@ -74,6 +77,16 @@ export async function fetchPools(params: {
     filtered = filtered.filter((p) => {
       const sym = p.symbol.toLowerCase();
       return stables.some((s) => sym.includes(s));
+    });
+  }
+
+  if (params.uniswapOnly) {
+    const supported = getSupportedTokenSymbols(1);
+    filtered = filtered.filter((p) => {
+      if (p.chain !== "Ethereum") return false;
+      const tokens = p.symbol.split("-").map((t) => t.trim().toUpperCase());
+      if (tokens.length < 2) return false;
+      return tokens.every((t) => supported.has(t));
     });
   }
 

@@ -14,6 +14,11 @@ vi.mock("ethers", () => ({
   ethers: {
     JsonRpcProvider: vi.fn().mockImplementation(() => ({})),
     Wallet: vi.fn().mockImplementation(() => ({ address: "0xmock" })),
+    AbstractSigner: class {},
+    Interface: vi.fn().mockImplementation(() => ({
+      encodeFunctionData: vi.fn().mockReturnValue("0x"),
+    })),
+    ZeroAddress: "0x0000000000000000000000000000000000000000",
   },
 }));
 

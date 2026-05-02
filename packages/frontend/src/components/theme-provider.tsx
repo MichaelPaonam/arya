@@ -10,11 +10,15 @@ const ThemeContext = createContext<Ctx | null>(null);
 const STORAGE_KEY = "arya-theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
+  const [theme, setThemeState] = useState<Theme>("dark");
 
   useLayoutEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    if (stored === "light" || stored === "dark") setThemeState(stored);
+    if (stored === "light" || stored === "dark") {
+      setThemeState(stored);
+    } else {
+      localStorage.setItem(STORAGE_KEY, "dark");
+    }
   }, []);
 
   useEffect(() => {

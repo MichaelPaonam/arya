@@ -7,6 +7,7 @@ export interface ExecutorAgentInput {
   walletAddress: string;
   chainId: number;
   amount?: string;
+  positionTokenId?: string;
 }
 
 export async function executorAgent(input: ExecutorAgentInput): Promise<ExecutionResult> {
@@ -54,6 +55,7 @@ export async function executorAgent(input: ExecutorAgentInput): Promise<Executio
       poolAddress: proposal.opportunity.pool,
       userWallet: walletAddress,
       chainId,
+      positionTokenId: input.positionTokenId ?? "1060000",
       ilThreshold: 5.0,
       valueDropThreshold: 10.0,
       tokenPair: [tokenIn, tokenOut],
@@ -67,7 +69,7 @@ export async function executorAgent(input: ExecutorAgentInput): Promise<Executio
   return {
     strategyId: proposal.id,
     status: "executed",
-    txHash: swapTx.data,
+    txHash: swapTx.data.startsWith("0x") ? swapTx.data : `0x${swapTx.data}`,
     keeperWorkflowId: workflowId,
   };
 }

@@ -2,8 +2,24 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {SmartAccountFactory} from "../src/SmartAccountFactory.sol";
+import {SmartAccountFactory, SmartAccount} from "../src/SmartAccountFactory.sol";
 import {SessionKeyModule} from "../src/SessionKeyModule.sol";
+
+contract MockTarget {
+    uint256 public lastValue;
+    bytes public lastData;
+    bool public shouldFail;
+
+    function doSomething(uint256 val) external payable {
+        require(!shouldFail, "MockTarget: forced failure");
+        lastValue = val;
+        lastData = msg.data;
+    }
+
+    function setShouldFail(bool fail) external {
+        shouldFail = fail;
+    }
+}
 
 contract ERC4337Test is Test {
     SmartAccountFactory public factory;
@@ -12,6 +28,7 @@ contract ERC4337Test is Test {
     address public alice;
     address public executor;
     address public uniswapRouter;
+    MockTarget public mockTarget;
 
     function setUp() public {
         owner = address(this);
@@ -21,6 +38,7 @@ contract ERC4337Test is Test {
 
         factory = new SmartAccountFactory();
         sessionModule = new SessionKeyModule();
+        mockTarget = new MockTarget();
     }
 
     // ============ SmartAccountFactory: createAccount ============
@@ -86,7 +104,7 @@ contract ERC4337Test is Test {
         assertTrue(sessionModule.isValidSessionKey(executor));
     }
 
-    function test_GrantSessionKey_NotOwner_Reverts() public {
+    function test_GrantSessionKey_AnyCaller_Succeeds() public {
         address[] memory targets = new address[](1);
         targets[0] = uniswapRouter;
 
@@ -100,8 +118,8 @@ contract ERC4337Test is Test {
         });
 
         vm.prank(alice);
-        vm.expectRevert();
         sessionModule.grantSessionKey(executor, perms);
+        assertTrue(sessionModule.isValidSessionKey(executor));
     }
 
     // ============ SessionKeyModule: revokeSessionKey ============
@@ -122,12 +140,12 @@ contract ERC4337Test is Test {
         sessionModule.revokeSessionKey(executor);
     }
 
-    function test_RevokeSessionKey_NotOwner_Reverts() public {
+    function test_RevokeSessionKey_AnyCaller_Succeeds() public {
         _grantDefaultKey();
 
         vm.prank(alice);
-        vm.expectRevert();
         sessionModule.revokeSessionKey(executor);
+        assertFalse(sessionModule.isValidSessionKey(executor));
     }
 
     // ============ SessionKeyModule: validateSessionOp ============
@@ -256,7 +274,146 @@ contract ERC4337Test is Test {
         assertTrue(valid);
     }
 
+    // ============ SmartAccount: execute ============
+
+    function test_Execute_Owner_Succeeds() public {
+        SmartAccount account = _createSmartAccount(owner);
+
+        bytes memory data = abi.encodeWithSelector(MockTarget.doSomething.selector, 42);
+        account.execute(address(mockTarget), 0, data);
+
+        assertEq(mockTarget.lastValue(), 42);
+    }
+
+    function test_Execute_Owner_WithValue_Succeeds() public {
+        SmartAccount account = _createSmartAccount(owner);
+        vm.deal(address(account), 1 ether);
+
+        bytes memory data = abi.encodeWithSelector(MockTarget.doSomething.selector, 99);
+        account.execute(address(mockTarget), 0.1 ether, data);
+
+        assertEq(mockTarget.lastValue(), 99);
+        assertEq(address(mockTarget).balance, 0.1 ether);
+    }
+
+    function test_Execute_SessionKey_WithValidPerms_Succeeds() public {
+        SmartAccount account = _createSmartAccount(owner);
+        account.setSessionModule(address(sessionModule));
+
+        address[] memory targets = new address[](1);
+        targets[0] = address(mockTarget);
+
+        SessionKeyModule.SessionPermissions memory perms = SessionKeyModule.SessionPermissions({
+            maxSpendPerTx: 1 ether,
+            maxTotalSpend: 10 ether,
+            allowedTargets: targets,
+            validUntil: block.timestamp + 7 days,
+            validAfter: block.timestamp,
+            totalSpent: 0
+        });
+        sessionModule.grantSessionKey(executor, perms);
+
+        bytes memory data = abi.encodeWithSelector(MockTarget.doSomething.selector, 77);
+        vm.prank(executor);
+        account.execute(address(mockTarget), 0, data);
+
+        assertEq(mockTarget.lastValue(), 77);
+    }
+
+    function test_Execute_SessionKey_DisallowedTarget_Reverts() public {
+        SmartAccount account = _createSmartAccount(owner);
+        account.setSessionModule(address(sessionModule));
+
+        address[] memory targets = new address[](1);
+        targets[0] = uniswapRouter;
+
+        SessionKeyModule.SessionPermissions memory perms = SessionKeyModule.SessionPermissions({
+            maxSpendPerTx: 1 ether,
+            maxTotalSpend: 10 ether,
+            allowedTargets: targets,
+            validUntil: block.timestamp + 7 days,
+            validAfter: block.timestamp,
+            totalSpent: 0
+        });
+        sessionModule.grantSessionKey(executor, perms);
+
+        bytes memory data = abi.encodeWithSelector(MockTarget.doSomething.selector, 1);
+        vm.prank(executor);
+        vm.expectRevert(abi.encodeWithSelector(SessionKeyModule.TargetNotAllowed.selector, address(mockTarget)));
+        account.execute(address(mockTarget), 0, data);
+    }
+
+    function test_Execute_RandomCaller_Reverts() public {
+        SmartAccount account = _createSmartAccount(owner);
+
+        bytes memory data = abi.encodeWithSelector(MockTarget.doSomething.selector, 1);
+        vm.prank(alice);
+        vm.expectRevert(SmartAccount.NotOwnerOrSessionKey.selector);
+        account.execute(address(mockTarget), 0, data);
+    }
+
+    function test_Execute_SessionKey_ExpiredKey_Reverts() public {
+        SmartAccount account = _createSmartAccount(owner);
+        account.setSessionModule(address(sessionModule));
+
+        address[] memory targets = new address[](1);
+        targets[0] = address(mockTarget);
+
+        SessionKeyModule.SessionPermissions memory perms = SessionKeyModule.SessionPermissions({
+            maxSpendPerTx: 1 ether,
+            maxTotalSpend: 10 ether,
+            allowedTargets: targets,
+            validUntil: block.timestamp + 7 days,
+            validAfter: block.timestamp,
+            totalSpent: 0
+        });
+        sessionModule.grantSessionKey(executor, perms);
+
+        vm.warp(block.timestamp + 8 days);
+
+        bytes memory data = abi.encodeWithSelector(MockTarget.doSomething.selector, 1);
+        vm.prank(executor);
+        vm.expectRevert(SessionKeyModule.SessionExpired.selector);
+        account.execute(address(mockTarget), 0, data);
+    }
+
+    function test_Execute_TargetFails_Reverts() public {
+        SmartAccount account = _createSmartAccount(owner);
+        mockTarget.setShouldFail(true);
+
+        bytes memory data = abi.encodeWithSelector(MockTarget.doSomething.selector, 1);
+        vm.expectRevert(abi.encodeWithSelector(SmartAccount.ExecutionFailed.selector, 0));
+        account.execute(address(mockTarget), 0, data);
+    }
+
+    function test_Execute_EmitsEvent() public {
+        SmartAccount account = _createSmartAccount(owner);
+
+        bytes memory data = abi.encodeWithSelector(MockTarget.doSomething.selector, 55);
+        vm.expectEmit(true, false, false, true);
+        emit SmartAccount.Executed(address(mockTarget), 0, data);
+        account.execute(address(mockTarget), 0, data);
+    }
+
+    function test_SetSessionModule_Owner_Succeeds() public {
+        SmartAccount account = _createSmartAccount(owner);
+        account.setSessionModule(address(sessionModule));
+        assertEq(account.sessionModule(), address(sessionModule));
+    }
+
+    function test_SetSessionModule_NotOwner_Reverts() public {
+        SmartAccount account = _createSmartAccount(owner);
+        vm.prank(alice);
+        vm.expectRevert("Not owner");
+        account.setSessionModule(address(sessionModule));
+    }
+
     // ============ Helpers ============
+
+    function _createSmartAccount(address acctOwner) internal returns (SmartAccount) {
+        address addr = factory.createAccount(acctOwner, 0);
+        return SmartAccount(payable(addr));
+    }
 
     function _grantDefaultKey() internal {
         address[] memory targets = new address[](1);

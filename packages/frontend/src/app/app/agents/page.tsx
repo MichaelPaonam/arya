@@ -3,6 +3,7 @@
 import { AppShell } from "@/components/app-shell";
 import { TierBadge } from "@/components/tier-badge";
 import { useAppMode } from "@/hooks/use-app-mode";
+import { useScanResults } from "@/hooks/use-scan-results";
 import { Bot, TrendingUp, Activity, Award, Cpu } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 
@@ -72,6 +73,18 @@ const roles = [
 
 export default function AgentsPage() {
   const { mode } = useAppMode();
+  const scanData = useScanResults();
+
+  const agentStatus = scanData ? [
+    { name: "Scout", desc: "Scans hundreds of DeFi protocols 24/7 for emerging yield opportunities across chains.", model: "Claude Haiku 4.5", status: scanData.opportunities.length > 0 ? "completed" : "idle", lastAction: scanData.opportunities.length > 0 ? `Found ${scanData.opportunities.length} pools` : "never" },
+    { name: "Risk", desc: "Scores every opportunity across impermanent loss, contract risk, liquidity depth, and correlation.", model: "Claude Haiku 4.5", status: scanData.riskAssessments.length > 0 ? "completed" : "idle", lastAction: scanData.riskAssessments.length > 0 ? `Scored ${scanData.riskAssessments.length} pools` : "never" },
+    { name: "Orchestrator", desc: "Coordinates the swarm pipeline, manages state, routes proposals through debate tiers.", model: "Claude Haiku 4.5", status: scanData.proposals.length > 0 ? "completed" : "idle", lastAction: scanData.proposals.length > 0 ? `Approved ${scanData.proposals.length} strategies` : "never" },
+    { name: "Executor", desc: "Builds swap transactions via Uniswap API and creates KeeperHub automated workflows.", model: "Uniswap + KeeperHub", status: scanData.executionResults.length > 0 ? "completed" : "idle", lastAction: scanData.executionResults.length > 0 ? `Executed ${scanData.executionResults.length} swaps` : "never" },
+  ] : null;
+
+  const strategiesExecuted = scanData?.executionResults.filter(r => r.status === "executed").length ?? 0;
+
+  const displayRoles = agentStatus ?? roles.map((r) => ({ ...r, status: "idle", lastAction: "never" }));
 
   if (mode === "hackathon") {
     return (
@@ -79,9 +92,9 @@ export default function AgentsPage() {
         <section className="mt-7 grid gap-4 md:grid-cols-4">
           {[
             { l: "Active Roles", v: "4", icon: Bot },
-            { l: "Strategies Executed", v: "0", icon: TrendingUp },
-            { l: "Win Rate", v: "—", icon: Activity },
-            { l: "Tier", v: "Unranked", icon: Award },
+            { l: "Strategies Executed", v: String(strategiesExecuted), icon: TrendingUp },
+            { l: "Win Rate", v: strategiesExecuted > 0 ? "100%" : "—", icon: Activity },
+            { l: "Tier", v: strategiesExecuted > 0 ? "Bronze" : "Unranked", icon: Award },
           ].map((s) => (
             <div key={s.l} className="glass-stat p-5">
               <div className="flex items-center justify-between">
@@ -102,18 +115,22 @@ export default function AgentsPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-lg font-semibold tracking-tight">Alpha Swarm</h3>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-on-surface-variant/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
-                    <span className="size-1.5 rounded-full bg-current" /> awaiting first scan
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                    scanData ? "bg-tertiary/15 text-tertiary" : "bg-on-surface-variant/10 text-on-surface-variant"
+                  }`}>
+                    <span className="size-1.5 rounded-full bg-current" /> {scanData ? "scan complete" : "awaiting first scan"}
                   </span>
                 </div>
-                <div className="mt-1 text-xs text-on-surface-variant">4 roles · just provisioned</div>
+                <div className="mt-1 text-xs text-on-surface-variant">
+                  4 roles · {scanData ? `${strategiesExecuted} strategies executed` : "just provisioned"}
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         <section className="mt-5 grid gap-4 lg:grid-cols-2">
-          {roles.map((role) => (
+          {displayRoles.map((role) => (
             <article key={role.name} className="glass p-6">
               <div className="flex items-start gap-4">
                 <div className="grid size-10 place-items-center rounded-lg bg-secondary/10 text-secondary">
@@ -122,8 +139,10 @@ export default function AgentsPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h4 className="text-base font-semibold">{role.name}</h4>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      <span className="size-1.5 rounded-full bg-current" /> idle
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                      role.status === "completed" ? "bg-tertiary/15 text-tertiary" : "bg-muted text-muted-foreground"
+                    }`}>
+                      <span className="size-1.5 rounded-full bg-current" /> {role.status}
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-on-surface-variant">{role.desc}</p>
@@ -131,7 +150,7 @@ export default function AgentsPage() {
                     <span className="inline-flex items-center gap-1.5">
                       <Cpu className="size-3.5" /> {role.model}
                     </span>
-                    <span>Last active: never</span>
+                    <span>Last active: {role.lastAction}</span>
                   </div>
                 </div>
               </div>

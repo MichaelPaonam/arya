@@ -13,46 +13,32 @@ export const WalletMountedContext = createContext(false);
 function WalletProviders({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
   const [queryClient] = useState(() => new QueryClient());
+  const [config] = useState(() => getConfig());
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Clear stale WalletConnect IDB stores that cause "keyvaluestorage is not a known object store" errors
-    try {
-      const dbName = "WALLET_CONNECT_V2_INDEXED_DB";
-      const req = indexedDB.open(dbName);
-      req.onsuccess = () => {
-        const db = req.result;
-        if (!db.objectStoreNames.contains("keyvaluestorage")) {
-          db.close();
-          indexedDB.deleteDatabase(dbName);
-        } else {
-          db.close();
-        }
-      };
-      req.onerror = () => {
-        indexedDB.deleteDatabase(dbName);
-      };
-    } catch {}
     setMounted(true);
   }, []);
 
   if (!mounted) {
-    return <WalletMountedContext.Provider value={false}>{children}</WalletMountedContext.Provider>;
+    return (
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <WalletMountedContext.Provider value={false}>
+            {children}
+          </WalletMountedContext.Provider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    );
   }
 
-  return <WalletProvidersInner theme={theme} queryClient={queryClient}>{children}</WalletProvidersInner>;
-}
-
-function WalletProvidersInner({ theme, queryClient, children }: { theme: string; queryClient: QueryClient; children: React.ReactNode }) {
-  const [config] = useState(() => getConfig());
-
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={config} reconnectOnMount>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           theme={
             theme === "dark"
-              ? darkTheme({ accentColor: "oklch(0.85 0.12 230)", borderRadius: "large" })
+              ? darkTheme({ accentColor: "oklch(0.85 0.12 230)", accentColorForeground: "#000000", borderRadius: "large" })
               : lightTheme({ accentColor: "oklch(0.30 0.05 235)", borderRadius: "large" })
           }
         >

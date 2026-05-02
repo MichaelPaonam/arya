@@ -1,7 +1,7 @@
 export { fetchPools, fetchPoolHistory, fetchTokenPrices } from "./defillama.js";
 export type { PoolData, PoolHistoryEntry, TokenPrice } from "./defillama.js";
 
-export { getSwapQuote, buildSwapCalldata, checkApproval } from "./uniswap.js";
+export { getSwapQuote, buildSwapCalldata, checkApproval, getSupportedTokenSymbols } from "./uniswap.js";
 export type { SwapQuoteParams, SwapQuote, SwapCalldataParams, SwapCalldata, ApprovalParams, ApprovalResult } from "./uniswap.js";
 
 export { createWorkflowFromTemplate, duplicateWorkflow, publishWorkflow } from "./keeperhub.js";

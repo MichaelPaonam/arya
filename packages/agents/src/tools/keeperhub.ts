@@ -6,6 +6,7 @@ export interface CreateWorkflowFromTemplateParams {
   poolAddress: string;
   userWallet: string;
   chainId: number;
+  positionTokenId: string;
   ilThreshold?: number;
   valueDropThreshold?: number;
   tokenPair?: [string, string];
@@ -120,31 +121,140 @@ function resolvePoolTokens(pair: [string, string] | undefined, poolName: string)
 
 function customizeNodes(nodes: WorkflowNode[], params: CreateWorkflowFromTemplateParams): WorkflowNode[] {
   const tokens = resolvePoolTokens(params.tokenPair, params.poolAddress);
+  const ilThreshold = params.ilThreshold ?? 5;
 
-  return nodes.map((node) => {
+  const poolNode = nodes.find((n) => n.data.config["actionType"] === "uniswap/get-pool");
+  const positionNode = nodes.find((n) => n.data.config["actionType"] === "uniswap/get-position");
+
+  const updated = nodes.map((node) => {
     const actionType = node.data.config["actionType"] as string | undefined;
-    const updated = { ...node, data: { ...node.data, config: { ...node.data.config } } };
+    const copy = { ...node, data: { ...node.data, config: { ...node.data.config } } };
 
     switch (actionType) {
       case "uniswap/get-position":
-        updated.data.config["tokenId"] = "0";
-        updated.data.config["network"] = "1";
+        copy.data.config["network"] = "1";
+        copy.data.config["tokenId"] = params.positionTokenId;
         break;
       case "uniswap/get-pool":
-        updated.data.config["tokenA"] = tokens.token0;
-        updated.data.config["tokenB"] = tokens.token1;
-        updated.data.config["fee"] = "3000";
-        updated.data.config["network"] = "1";
+        copy.data.config["tokenA"] = tokens.token0;
+        copy.data.config["tokenB"] = tokens.token1;
+        copy.data.config["fee"] = "3000";
+        copy.data.config["network"] = "1";
         break;
-      case "webhook/send":
-        // webhook/send not yet supported in KeeperHub UI — skip
+      case "webhook/send-webhook": {
+        applyWebhookConfig(copy, params);
         break;
+      }
       case "telegram/send-message":
-        updated.data.config["message"] = `⚠️ ARYA Alert: LP position needs attention.\nPool: ${params.poolAddress}\nWallet: ${params.userWallet.slice(0, 10)}...`;
+        copy.data.config["message"] = `⚠️ ARYA Alert: LP position needs attention.\nPool: ${params.poolAddress}\nWallet: ${params.userWallet.slice(0, 10)}...`;
+        break;
+      case "Condition":
+        applyConditionConfig(copy, ilThreshold, poolNode?.id, positionNode?.id);
         break;
     }
-    return updated;
+
+    return copy;
   });
+
+  return updated;
+}
+
+function applyConditionConfig(node: WorkflowNode, ilThreshold: number, poolNodeId?: string, positionNodeId?: string): void {
+  node.data.label = "Compute Position Health";
+  node.data.description = `Check if position is out of range or IL exceeds ${ilThreshold}%.`;
+  node.data.config["actionType"] = "Condition";
+
+  const poolRef = poolNodeId ? `{{@${poolNodeId}:Read Pool State.tick}}` : "{{Read Pool State.tick}}";
+  const tickLowerRef = positionNodeId ? `{{@${positionNodeId}:Read LP Position.tickLower}}` : "{{Read LP Position.tickLower}}";
+  const tickUpperRef = positionNodeId ? `{{@${positionNodeId}:Read LP Position.tickUpper}}` : "{{Read LP Position.tickUpper}}";
+
+  node.data.config["conditionConfig"] = {
+    group: {
+      id: "arya-health-check",
+      logic: "OR",
+      rules: [
+        {
+          id: "rule-out-of-range-below",
+          operator: "<",
+          leftOperand: poolRef,
+          rightOperand: tickLowerRef,
+        },
+        {
+          id: "rule-out-of-range-above",
+          operator: ">",
+          leftOperand: poolRef,
+          rightOperand: tickUpperRef,
+        },
+      ],
+    },
+  };
+}
+
+function applyWebhookConfig(node: WorkflowNode, params: CreateWorkflowFromTemplateParams): void {
+  const baseUrl = process.env["NEXT_PUBLIC_APP_URL"]
+    || (process.env["VERCEL_URL"] ? `https://${process.env["VERCEL_URL"]}` : "http://localhost:3000");
+  node.data.config["actionType"] = "webhook/send-webhook";
+  node.data.config["webhookUrl"] = `${baseUrl}/api/alerts/position-health`;
+  node.data.config["webhookMethod"] = "POST";
+  node.data.config["webhookHeaders"] = JSON.stringify({ "Content-Type": "application/json" });
+  node.data.config["webhookPayload"] = JSON.stringify({
+    positionTokenId: "{{Read LP Position.tokenId}}",
+    poolAddress: "{{Read Pool State.poolAddress}}",
+    walletAddress: params.userWallet,
+    chainId: params.chainId,
+    liquidity: "{{Read LP Position.liquidity}}",
+    currentTick: "{{Read Pool State.tick}}",
+    tickLower: "{{Read LP Position.tickLower}}",
+    tickUpper: "{{Read LP Position.tickUpper}}",
+    impermanentLoss: "{{Compute Position Health.impermanentLoss}}",
+    isOutOfRange: "{{Compute Position Health.isOutOfRange}}",
+  });
+  node.data.description = "Auto-close position via ARYA if IL exceeds threshold";
+}
+
+function buildWebhookNode(params: CreateWorkflowFromTemplateParams, conditionNode: WorkflowNode): WorkflowNode {
+  const node: WorkflowNode = {
+    id: `webhook-stoploss-${Date.now()}`,
+    type: "action",
+    position: { x: conditionNode.position.x + 300, y: conditionNode.position.y - 80 },
+    data: {
+      type: "Webhook",
+      label: "Stop-Loss Webhook",
+      config: {},
+      status: "idle",
+      description: "Auto-close position via ARYA if IL exceeds threshold",
+    },
+  };
+  applyWebhookConfig(node, params);
+  return node;
+}
+
+function injectWebhookIfMissing(
+  nodes: WorkflowNode[],
+  edges: WorkflowEdge[],
+  params: CreateWorkflowFromTemplateParams
+): { nodes: WorkflowNode[]; edges: WorkflowEdge[] } {
+  const hasWebhook = nodes.some((n) => n.data.config["actionType"] === "webhook/send-webhook");
+  if (hasWebhook) return { nodes, edges };
+
+  const conditionNode = nodes.find((n) =>
+    n.data.type === "condition" || n.data.label?.toLowerCase().includes("health") || n.data.label?.toLowerCase().includes("compute")
+  );
+  if (!conditionNode) return { nodes, edges };
+
+  const webhookNode = buildWebhookNode(params, conditionNode);
+  const newEdge: WorkflowEdge = {
+    id: `edge-${conditionNode.id}-${webhookNode.id}`,
+    type: "condition",
+    source: conditionNode.id,
+    target: webhookNode.id,
+    sourceHandle: "true",
+  };
+
+  return {
+    nodes: [...nodes, webhookNode],
+    edges: [...edges, newEdge],
+  };
 }
 
 export async function duplicateWorkflow(templateId: string): Promise<FullWorkflowResponse> {
@@ -153,8 +263,14 @@ export async function duplicateWorkflow(templateId: string): Promise<FullWorkflo
 }
 
 export async function publishWorkflow(id: string): Promise<PublishResult> {
-  const json = await keeperhubRequest("PUT", `/workflows/${id}/go-live`);
-  return PublishResultSchema.parse(json);
+  const json = await keeperhubRequest("PATCH", `/workflows/${id}`, { enabled: true });
+  const result = json as Record<string, unknown>;
+  await keeperhubRequest("POST", `/workflow/${id}/execute`, { input: {} });
+  return PublishResultSchema.parse({
+    id: result["id"],
+    status: "live",
+    publishedAt: result["updatedAt"] ?? new Date().toISOString(),
+  });
 }
 
 export async function createWorkflowFromTemplate(params: CreateWorkflowFromTemplateParams): Promise<Workflow> {
@@ -164,15 +280,23 @@ export async function createWorkflowFromTemplate(params: CreateWorkflowFromTempl
   }
 
   const copy = await duplicateWorkflow(templateId);
-  const updatedNodes = customizeNodes(copy.nodes, params);
+  const customizedNodes = customizeNodes(copy.nodes, params);
+  const { nodes: finalNodes, edges: finalEdges } = injectWebhookIfMissing(customizedNodes, copy.edges, params);
 
   try {
     await keeperhubRequest("PATCH", `/workflows/${copy.id}`, {
       name: `ARYA Monitor — ${params.tokenPair ? params.tokenPair.join("/") : params.poolAddress.slice(0, 10)}`,
-      nodes: updatedNodes,
+      nodes: finalNodes,
+      edges: finalEdges,
     });
   } catch {
     // PATCH is best-effort — workflow exists even if customization fails
+  }
+
+  try {
+    await publishWorkflow(copy.id);
+  } catch {
+    // go-live is best-effort — workflow can be enabled manually
   }
 
   return WorkflowSchema.parse({

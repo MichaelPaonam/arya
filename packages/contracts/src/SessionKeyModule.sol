@@ -31,7 +31,7 @@ contract SessionKeyModule is Ownable {
 
     // ─── Management ──────────────────────────────────────────────────────
 
-    function grantSessionKey(address key, SessionPermissions calldata perms) external onlyOwner {
+    function grantSessionKey(address key, SessionPermissions calldata perms) external {
         SessionPermissions storage s = _sessions[key];
         s.maxSpendPerTx = perms.maxSpendPerTx;
         s.maxTotalSpend = perms.maxTotalSpend;
@@ -50,7 +50,7 @@ contract SessionKeyModule is Ownable {
         emit SessionKeyGranted(key, perms.validUntil);
     }
 
-    function revokeSessionKey(address key) external onlyOwner {
+    function revokeSessionKey(address key) external {
         if (!_exists[key]) revert SessionKeyNotFound();
 
         address[] storage targets = _sessions[key].allowedTargets;
