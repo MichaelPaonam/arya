@@ -120,49 +120,132 @@ function resolvePoolTokens(pair: [string, string] | undefined, poolName: string)
 
 function customizeNodes(nodes: WorkflowNode[], params: CreateWorkflowFromTemplateParams): WorkflowNode[] {
   const tokens = resolvePoolTokens(params.tokenPair, params.poolAddress);
+  const ilThreshold = params.ilThreshold ?? 5;
 
-  return nodes.map((node) => {
+  const updated = nodes.map((node) => {
     const actionType = node.data.config["actionType"] as string | undefined;
-    const updated = { ...node, data: { ...node.data, config: { ...node.data.config } } };
+    const copy = { ...node, data: { ...node.data, config: { ...node.data.config } } };
 
     switch (actionType) {
       case "uniswap/get-position":
-        updated.data.config["tokenId"] = "0";
-        updated.data.config["network"] = "1";
+        copy.data.config["tokenId"] = "0";
+        copy.data.config["network"] = "1";
         break;
       case "uniswap/get-pool":
-        updated.data.config["tokenA"] = tokens.token0;
-        updated.data.config["tokenB"] = tokens.token1;
-        updated.data.config["fee"] = "3000";
-        updated.data.config["network"] = "1";
+        copy.data.config["tokenA"] = tokens.token0;
+        copy.data.config["tokenB"] = tokens.token1;
+        copy.data.config["fee"] = "3000";
+        copy.data.config["network"] = "1";
         break;
       case "webhook/send": {
-        const baseUrl = process.env["NEXT_PUBLIC_APP_URL"]
-          || (process.env["VERCEL_URL"] ? `https://${process.env["VERCEL_URL"]}` : "http://localhost:3000");
-        updated.data.config["url"] = `${baseUrl}/api/alerts/position-health`;
-        updated.data.config["method"] = "POST";
-        updated.data.config["headers"] = { "Content-Type": "application/json" };
-        updated.data.config["body"] = JSON.stringify({
-          positionTokenId: "{{position.tokenId}}",
-          poolAddress: params.poolAddress,
-          walletAddress: params.userWallet,
-          chainId: params.chainId,
-          liquidity: "{{position.liquidity}}",
-          currentTick: "{{pool.tick}}",
-          tickLower: "{{position.tickLower}}",
-          tickUpper: "{{position.tickUpper}}",
-          impermanentLoss: "{{computed.impermanentLoss}}",
-          isOutOfRange: "{{computed.isOutOfRange}}",
-        });
-        updated.data.description = "Auto-close position via ARYA if IL exceeds threshold";
+        applyWebhookConfig(copy, params);
         break;
       }
       case "telegram/send-message":
-        updated.data.config["message"] = `⚠️ ARYA Alert: LP position needs attention.\nPool: ${params.poolAddress}\nWallet: ${params.userWallet.slice(0, 10)}...`;
+        copy.data.config["message"] = `⚠️ ARYA Alert: LP position needs attention.\nPool: ${params.poolAddress}\nWallet: ${params.userWallet.slice(0, 10)}...`;
         break;
     }
-    return updated;
+
+    if (copy.data.type === "condition" || copy.data.label?.toLowerCase().includes("health")) {
+      applyConditionConfig(copy, ilThreshold);
+    }
+
+    return copy;
   });
+
+  return updated;
+}
+
+function applyConditionConfig(node: WorkflowNode, ilThreshold: number): void {
+  node.data.label = "Compute Position Health";
+  node.data.description = `Trigger if position is out of range OR impermanent loss exceeds ${ilThreshold}%.`;
+  node.data.config["conditions"] = [
+    {
+      field: "Read Pool State.tick",
+      operator: "less than",
+      value: "{{@Read LP Position.tickLower}}",
+    },
+    {
+      logic: "OR",
+      field: "Read Pool State.tick",
+      operator: "greater than",
+      value: "{{@Read LP Position.tickUpper}}",
+    },
+    {
+      logic: "OR",
+      field: "computed.impermanentLoss",
+      operator: "greater than",
+      value: String(ilThreshold),
+    },
+  ];
+  node.data.config["expression"] = `{{@Read Pool State.tick}} < {{@Read LP Position.tickLower}} || {{@Read Pool State.tick}} > {{@Read LP Position.tickUpper}} || {{computed.impermanentLoss}} > ${ilThreshold}`;
+}
+
+function applyWebhookConfig(node: WorkflowNode, params: CreateWorkflowFromTemplateParams): void {
+  const baseUrl = process.env["NEXT_PUBLIC_APP_URL"]
+    || (process.env["VERCEL_URL"] ? `https://${process.env["VERCEL_URL"]}` : "http://localhost:3000");
+  node.data.config["actionType"] = "webhook/send";
+  node.data.config["url"] = `${baseUrl}/api/alerts/position-health`;
+  node.data.config["method"] = "POST";
+  node.data.config["headers"] = { "Content-Type": "application/json" };
+  node.data.config["body"] = JSON.stringify({
+    positionTokenId: "{{position.tokenId}}",
+    poolAddress: params.poolAddress,
+    walletAddress: params.userWallet,
+    chainId: params.chainId,
+    liquidity: "{{position.liquidity}}",
+    currentTick: "{{pool.tick}}",
+    tickLower: "{{position.tickLower}}",
+    tickUpper: "{{position.tickUpper}}",
+    impermanentLoss: "{{computed.impermanentLoss}}",
+    isOutOfRange: "{{computed.isOutOfRange}}",
+  });
+  node.data.description = "Auto-close position via ARYA if IL exceeds threshold";
+}
+
+function buildWebhookNode(params: CreateWorkflowFromTemplateParams, conditionNode: WorkflowNode): WorkflowNode {
+  const node: WorkflowNode = {
+    id: `webhook-stoploss-${Date.now()}`,
+    type: "action",
+    position: { x: conditionNode.position.x + 300, y: conditionNode.position.y - 80 },
+    data: {
+      type: "Webhook",
+      label: "Stop-Loss Webhook",
+      config: {},
+      status: "idle",
+      description: "Auto-close position via ARYA if IL exceeds threshold",
+    },
+  };
+  applyWebhookConfig(node, params);
+  return node;
+}
+
+function injectWebhookIfMissing(
+  nodes: WorkflowNode[],
+  edges: WorkflowEdge[],
+  params: CreateWorkflowFromTemplateParams
+): { nodes: WorkflowNode[]; edges: WorkflowEdge[] } {
+  const hasWebhook = nodes.some((n) => n.data.config["actionType"] === "webhook/send");
+  if (hasWebhook) return { nodes, edges };
+
+  const conditionNode = nodes.find((n) =>
+    n.data.type === "condition" || n.data.label?.toLowerCase().includes("health") || n.data.label?.toLowerCase().includes("compute")
+  );
+  if (!conditionNode) return { nodes, edges };
+
+  const webhookNode = buildWebhookNode(params, conditionNode);
+  const newEdge: WorkflowEdge = {
+    id: `edge-${conditionNode.id}-${webhookNode.id}`,
+    type: "condition",
+    source: conditionNode.id,
+    target: webhookNode.id,
+    sourceHandle: "true",
+  };
+
+  return {
+    nodes: [...nodes, webhookNode],
+    edges: [...edges, newEdge],
+  };
 }
 
 export async function duplicateWorkflow(templateId: string): Promise<FullWorkflowResponse> {
@@ -182,12 +265,14 @@ export async function createWorkflowFromTemplate(params: CreateWorkflowFromTempl
   }
 
   const copy = await duplicateWorkflow(templateId);
-  const updatedNodes = customizeNodes(copy.nodes, params);
+  const customizedNodes = customizeNodes(copy.nodes, params);
+  const { nodes: finalNodes, edges: finalEdges } = injectWebhookIfMissing(customizedNodes, copy.edges, params);
 
   try {
     await keeperhubRequest("PATCH", `/workflows/${copy.id}`, {
       name: `ARYA Monitor — ${params.tokenPair ? params.tokenPair.join("/") : params.poolAddress.slice(0, 10)}`,
-      nodes: updatedNodes,
+      nodes: finalNodes,
+      edges: finalEdges,
     });
   } catch {
     // PATCH is best-effort — workflow exists even if customization fails
