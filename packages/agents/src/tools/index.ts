@@ -4,8 +4,11 @@ export type { PoolData, PoolHistoryEntry, TokenPrice } from "./defillama.js";
 export { getSwapQuote, buildSwapCalldata, checkApproval } from "./uniswap.js";
 export type { SwapQuoteParams, SwapQuote, SwapCalldataParams, SwapCalldata, ApprovalParams, ApprovalResult } from "./uniswap.js";
 
-export { createWorkflow, publishWorkflow, getWorkflowStatus } from "./keeperhub.js";
-export type { CreateWorkflowParams, Workflow, PublishResult, WorkflowStatus } from "./keeperhub.js";
+export { createWorkflowFromTemplate, duplicateWorkflow, publishWorkflow } from "./keeperhub.js";
+export type { CreateWorkflowFromTemplateParams, Workflow, PublishResult } from "./keeperhub.js";
+
+export { buildClosePositionCalldata } from "./close-position.js";
+export type { ClosePositionParams, ClosePositionCalldata } from "./close-position.js";
 
 export { uploadMemory, downloadMemory } from "./og-storage.js";
 
