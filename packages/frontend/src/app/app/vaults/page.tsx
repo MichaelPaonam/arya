@@ -2,6 +2,9 @@
 
 import { AppShell } from "@/components/app-shell";
 import { RiskBadge } from "@/components/risk-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PlaceholderStat } from "@/components/ui/placeholder-stat";
+import { useAppMode } from "@/hooks/use-app-mode";
 import { Wallet, Plus, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
@@ -18,6 +21,38 @@ const tvlSeries = Array.from({ length: 30 }, (_, i) => ({
 }));
 
 export default function VaultsPage() {
+  const { mode } = useAppMode();
+
+  if (mode === "hackathon") {
+    return (
+      <AppShell
+        eyebrow="Strategy Vaults"
+        title="Your Vaults"
+        actions={
+          <button className="hidden h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 md:inline-flex">
+            <Plus className="size-4" /> Open vault
+          </button>
+        }
+      >
+        <section className="mt-7 grid gap-4 md:grid-cols-4">
+          <PlaceholderStat label="Total Deposited" hint="Across all vaults" />
+          <PlaceholderStat label="Active Vaults" hint="Open positions" />
+          <PlaceholderStat label="Avg. APY" hint="Blended yield" />
+          <PlaceholderStat label="Best Performer" hint="Top vault" />
+        </section>
+        <section className="mt-5">
+          <EmptyState
+            icon={Wallet}
+            eyebrow="Vaults"
+            title="Open your first strategy vault"
+            description="Strategy vaults let AI agents manage positions on your behalf. You approve every trade before execution."
+            primaryAction={{ label: "Browse opportunities", href: "/app/opportunities" }}
+          />
+        </section>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell
       eyebrow="Strategy Vaults"
