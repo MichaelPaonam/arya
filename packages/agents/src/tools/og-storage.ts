@@ -1,6 +1,7 @@
 import { Indexer, MemData } from "@0gfoundation/0g-ts-sdk";
 import { ethers } from "ethers";
 import type { AgentMemoryBlob } from "../types/index.js";
+import { SmartAccountSigner } from "../adapters/smart-account-signer.js";
 
 const INDEXER_URL = process.env["ZG_INDEXER_URL"] ?? "https://indexer-storage-testnet-turbo.0g.ai";
 const RPC_URL = process.env["ZG_RPC_URL"] ?? "https://evmrpc-testnet.0g.ai";
@@ -13,10 +14,19 @@ export interface StorageReceipt {
   fileSize: number;
 }
 
-function getSigner(): ethers.Wallet {
+function getSigner(): ethers.Signer {
+  const sessionKey = process.env["SESSION_KEY_PRIVATE_KEY"];
+  const smartAccount = process.env["SMART_ACCOUNT_ADDRESS"];
+
+  if (sessionKey && smartAccount) {
+    const provider = new ethers.JsonRpcProvider(RPC_URL);
+    const wallet = new ethers.Wallet(sessionKey, provider);
+    return new SmartAccountSigner(wallet, smartAccount, provider);
+  }
+
   const privateKey = process.env["ZG_PRIVATE_KEY"];
   if (!privateKey) {
-    throw new Error("ZG_PRIVATE_KEY not configured — cannot sign 0G Storage transactions");
+    throw new Error("No signer configured for 0G Storage — set ZG_PRIVATE_KEY or SESSION_KEY_PRIVATE_KEY + SMART_ACCOUNT_ADDRESS");
   }
   const provider = new ethers.JsonRpcProvider(RPC_URL);
   return new ethers.Wallet(privateKey, provider);
