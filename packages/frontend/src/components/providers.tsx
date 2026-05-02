@@ -16,6 +16,23 @@ function WalletProviders({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Clear stale WalletConnect IDB stores that cause "keyvaluestorage is not a known object store" errors
+    try {
+      const dbName = "WALLET_CONNECT_V2_INDEXED_DB";
+      const req = indexedDB.open(dbName);
+      req.onsuccess = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains("keyvaluestorage")) {
+          db.close();
+          indexedDB.deleteDatabase(dbName);
+        } else {
+          db.close();
+        }
+      };
+      req.onerror = () => {
+        indexedDB.deleteDatabase(dbName);
+      };
+    } catch {}
     setMounted(true);
   }, []);
 

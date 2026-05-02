@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { CheckCircle2, XCircle, TrendingUp, ShieldCheck, Zap } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -16,10 +17,11 @@ export function PendingStrategyCard({
   onReject,
 }: {
   proposal: StrategyProposal;
-  onApprove: () => void;
+  onApprove: (amount: string) => void;
   onReject: () => void;
 }) {
   const { opportunity, risk, debateOutcome, estimatedReturn, explanation } = proposal;
+  const [amount, setAmount] = useState("");
 
   const radarData = [
     { axis: "Liquidity", v: risk.liquidityRisk === "low" ? 88 : risk.liquidityRisk === "medium" ? 55 : 25 },
@@ -83,19 +85,35 @@ export function PendingStrategyCard({
         </div>
       </div>
 
-      <div className="mt-4 flex gap-2">
-        <button
-          onClick={onApprove}
-          className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-tertiary px-3 text-xs font-semibold text-tertiary-foreground transition hover:opacity-90"
-        >
-          <CheckCircle2 className="size-3.5" /> Approve
-        </button>
-        <button
-          onClick={onReject}
-          className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-destructive/90 px-3 text-xs font-semibold text-destructive-foreground transition hover:opacity-90"
-        >
-          <XCircle className="size-3.5" /> Reject
-        </button>
+      <div className="mt-4 space-y-3">
+        <div>
+          <label className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">
+            Amount ({opportunity.tokenPair[0]})
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="any"
+            placeholder="10"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-foreground/5 px-3 py-2 text-sm font-mono placeholder:text-on-surface-variant/50 focus:border-secondary focus:outline-none"
+          />
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => onApprove(amount || "10")}
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-tertiary px-3 text-xs font-semibold text-tertiary-foreground transition hover:opacity-90"
+          >
+            <CheckCircle2 className="size-3.5" /> Approve
+          </button>
+          <button
+            onClick={onReject}
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-destructive/90 px-3 text-xs font-semibold text-destructive-foreground transition hover:opacity-90"
+          >
+            <XCircle className="size-3.5" /> Reject
+          </button>
+        </div>
       </div>
     </article>
   );
