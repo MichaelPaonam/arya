@@ -21,6 +21,7 @@ const SERVICE_LABELS: Record<string, string> = {
 };
 
 const SERVICE_ICONS: Record<string, string> = {
+  defillama: "/defillama.png",
   uniswap: "/uniswap.svg",
   "0g-storage": "/0g.png",
   keeperhub: "/kh.png",

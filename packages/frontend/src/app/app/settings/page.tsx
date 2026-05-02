@@ -173,6 +173,12 @@ function RiskLimitsCard() {
     return localStorage.getItem("arya-pool-filter") || "all";
   });
 
+  const [poolLimit, setPoolLimit] = useState(() => {
+    if (typeof window === "undefined") return 3;
+    const stored = localStorage.getItem("arya-pool-limit");
+    return stored ? parseInt(stored, 10) : 3;
+  });
+
   const handleRiskChange = (value: number) => {
     setMaxRiskScore(value);
     localStorage.setItem("arya-max-risk-score", String(value));
@@ -186,6 +192,11 @@ function RiskLimitsCard() {
   const handlePoolFilterChange = (value: string) => {
     setPoolFilter(value);
     localStorage.setItem("arya-pool-filter", value);
+  };
+
+  const handlePoolLimitChange = (value: number) => {
+    setPoolLimit(value);
+    localStorage.setItem("arya-pool-limit", String(value));
   };
 
   return (
@@ -207,6 +218,25 @@ function RiskLimitsCard() {
           {poolFilter === "all" && "Top APY pools (higher risk, higher reward)"}
           {poolFilter === "stable" && "Stablecoin pairs only — low IL, APY ≤ 30%"}
           {poolFilter === "bluechip" && "TVL > $50M, APY ≤ 50% — established protocols"}
+        </div>
+      </div>
+      <div className="rounded-lg border border-border bg-foreground/5 px-3.5 py-3">
+        <div className="flex items-center justify-between">
+          <span className="label-eyebrow">Pools to scan</span>
+          <span className="text-mono text-sm font-semibold text-secondary">{poolLimit}</span>
+        </div>
+        <input
+          type="range"
+          min={1}
+          max={20}
+          step={1}
+          value={poolLimit}
+          onChange={(e) => handlePoolLimitChange(parseInt(e.target.value, 10))}
+          className="mt-2 w-full accent-secondary"
+        />
+        <div className="mt-1 flex justify-between text-[10px] text-on-surface-variant">
+          <span>Faster</span>
+          <span>More thorough</span>
         </div>
       </div>
       <div className="rounded-lg border border-border bg-foreground/5 px-3.5 py-3">

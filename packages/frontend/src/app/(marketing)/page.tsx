@@ -306,9 +306,9 @@ export default function LandingPage() {
           <motion.div variants={fadeUp} className="glass p-6">
             <div className="grid gap-4 sm:grid-cols-2">
               {[
-                { icon: TrendingUp, title: "Same data feeds", body: "DefiLlama, Uniswap, CoinGecko — visible to all." },
+                { icon: TrendingUp, title: "Same data feeds", body: "DefiLlama, Uniswap, CoinGecko — visible to all.", logos: ["/defillama.png", "/uniswap.svg"] },
                 { icon: ShieldCheck, title: "Same risk math", body: "Deterministic IL, correlation, TVL-weighted scoring." },
-                { icon: Zap, title: "Same execution", body: "Session keys, MEV protection, KeeperHub monitoring." },
+                { icon: Zap, title: "Same execution", body: "Session keys, MEV protection, KeeperHub monitoring.", logos: ["/kh.png"] },
                 { icon: Brain, title: "Different minds", body: "LLM reasoning is the variable — and the moat." },
               ].map((f) => (
                 <motion.div
@@ -319,6 +319,13 @@ export default function LandingPage() {
                   <f.icon className="size-4 text-secondary" strokeWidth={1.75} />
                   <div className="mt-3 text-sm font-semibold text-foreground">{f.title}</div>
                   <div className="mt-1 text-xs text-on-surface-variant">{f.body}</div>
+                  {"logos" in f && f.logos && (
+                    <div className="mt-2 flex items-center gap-2">
+                      {f.logos.map((src) => (
+                        <Image key={src} src={src} alt="" width={14} height={14} className="opacity-60" />
+                      ))}
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </div>

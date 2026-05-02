@@ -148,6 +148,7 @@ export function AppShell({
                 <Image src="/0g.png" alt="0G" width={20} height={20} className="opacity-70 hover:opacity-100 transition dark:invert" />
                 <Image src="/kh.png" alt="KeeperHub" width={20} height={20} className="opacity-70 hover:opacity-100 transition" />
                 <Image src="/uniswap.svg" alt="Uniswap" width={20} height={20} className="opacity-70 hover:opacity-100 transition" />
+                <Image src="/defillama.png" alt="DefiLlama" width={20} height={20} className="opacity-70 hover:opacity-100 transition" />
               </div>
             </div>
           )}
