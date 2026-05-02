@@ -120,7 +120,7 @@ All contracts are deployed on 0G Galileo Testnet (Chain ID: 16602).
 | Contract | Address | Purpose |
 |----------|---------|---------|
 | `YieldSwarmRegistry.sol` | `0x83A2bda1f2514871E805A59bA6448ec2346e2C03` | ERC-7857 iNFT registry - each agent has a verifiable on-chain identity |
-| `StrategyVault.sol` | `0xFB7382DEc0D8B161594742cE7F6d32025729B25B` | Human-in-the-loop approval gate - agents propose, only the owner can approve fund movements |
+| `StrategyVault.sol` | `0xFB7382DEc0D8B161594742cE7F6d32025729B25B` | Human-in-the-loop approval gate - agents propose, users approve before any fund movement |
 | `AgentReputation.sol` | `0x49564aA6AfDA323F62F9BC562638c272776d0D1a` | On-chain performance tracking - agents build verifiable reputation over time |
 | `SmartAccountFactory.sol` | `0x06a148eD3F8Da650a9BDd37a12a75ae960c79e40` | CREATE2 deterministic smart account deployment with execute() for session key delegation |
 | `SessionKeyModule.sol` | `0x01be109884a05e29b4e073F0fa23D825393d0fB6` | Session keys for bounded agent autonomy with spend limits and time bounds |
