@@ -122,7 +122,7 @@ All contracts are deployed on 0G Galileo Testnet (Chain ID: 16602).
 | `YieldSwarmRegistry.sol` | `0xc6ae9fa287f7628a221526bafae9fb96e75b7b1e` | ERC-7857 iNFT registry - each agent has a verifiable on-chain identity |
 | `StrategyVault.sol` | `0x124332af824893b5030067df01eed6898ff36f51` | Human-in-the-loop approval gate - agents propose, only the owner can approve fund movements |
 | `AgentReputation.sol` | `0xcad00a3545b63b4936b3044c5cfdf7012cbd6596` | On-chain performance tracking - agents build verifiable reputation over time |
-| `SmartAccountFactory.sol` | `0x3445a25b9b07a302766fb99406f088f544094c7e` | CREATE2 deterministic smart account deployment for users |
+| `SmartAccountFactory.sol` | `0xBb85872CfA2dFa6DB73785d6731241A0653596f6` | CREATE2 deterministic smart account deployment with execute() for session key delegation |
 | `SessionKeyModule.sol` | `0x69096aa05f5f19dbad0fd43c1b18190a4119a438` | Session keys for bounded agent autonomy with spend limits and time bounds |
 
 ## Sponsor Integrations
@@ -198,7 +198,7 @@ cp .env.example .env
 # Smart contracts (Solidity + Foundry)
 cd packages/contracts
 forge build            # Compile contracts
-forge test             # Run all tests (105 tests across 4 suites)
+forge test             # Run all tests (124 tests across 4 suites)
 forge test -vvv        # Verbose output for debugging
 forge test --match-contract YieldSwarmRegistryTest  # Run specific test file
 
@@ -250,7 +250,7 @@ open-agent/
 │   │   │   ├── AgentReputation.sol
 │   │   │   ├── SmartAccountFactory.sol
 │   │   │   └── SessionKeyModule.sol
-│   │   ├── test/            # Forge test files (105 tests)
+│   │   ├── test/            # Forge test files (124 tests)
 │   │   ├── script/          # Deploy scripts
 │   │   ├── broadcast/       # Deployment receipts (tx hashes, addresses)
 │   │   └── lib/             # Dependencies (git submodules)
@@ -259,6 +259,7 @@ open-agent/
 │   │       ├── types/       # Zod schemas + TypeScript types
 │   │       ├── tools/       # API wrappers (DefiLlama, Uniswap, KeeperHub, 0G, wallet)
 │   │       ├── agents/      # Scout, Risk, Orchestrator, Executor
+│   │       ├── adapters/    # SmartAccountSigner (session key tx delegation)
 │   │       ├── debate/      # 3-tier debate protocol (Fast/Standard/Deep)
 │   │       ├── storage/     # Redis client + 0G memory persistence
 │   │       ├── utils/       # LLM client (OpenRouter), IL math
@@ -286,6 +287,15 @@ open-agent/
 8. **Executor Agent** builds the swap transaction via Uniswap API and submits it
 9. **KeeperHub** monitors the position and triggers alerts if conditions change
 10. **Outcome recorded** on-chain — agent reputation updates based on strategy performance
+
+### Session Key Delegation (0G Storage)
+
+Instead of exposing a raw private key for 0G Storage uploads, ARYA uses ERC-4337 session keys:
+
+1. User grants a bounded session key to the backend EOA during setup
+2. Session key is constrained: only the 0G FixedPriceFlow contract, max 0.01 0G/tx, 7-day expiry
+3. Backend signs uploads through `SmartAccount.execute()` — the session module validates permissions
+4. No private key of the contract owner is ever stored server-side
 
 ## License
 
