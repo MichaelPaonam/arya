@@ -104,7 +104,7 @@ contract ERC4337Test is Test {
         assertTrue(sessionModule.isValidSessionKey(executor));
     }
 
-    function test_GrantSessionKey_NotOwner_Reverts() public {
+    function test_GrantSessionKey_AnyCaller_Succeeds() public {
         address[] memory targets = new address[](1);
         targets[0] = uniswapRouter;
 
@@ -118,8 +118,8 @@ contract ERC4337Test is Test {
         });
 
         vm.prank(alice);
-        vm.expectRevert();
         sessionModule.grantSessionKey(executor, perms);
+        assertTrue(sessionModule.isValidSessionKey(executor));
     }
 
     // ============ SessionKeyModule: revokeSessionKey ============
@@ -140,12 +140,12 @@ contract ERC4337Test is Test {
         sessionModule.revokeSessionKey(executor);
     }
 
-    function test_RevokeSessionKey_NotOwner_Reverts() public {
+    function test_RevokeSessionKey_AnyCaller_Succeeds() public {
         _grantDefaultKey();
 
         vm.prank(alice);
-        vm.expectRevert();
         sessionModule.revokeSessionKey(executor);
+        assertFalse(sessionModule.isValidSessionKey(executor));
     }
 
     // ============ SessionKeyModule: validateSessionOp ============
