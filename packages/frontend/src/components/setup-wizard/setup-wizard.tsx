@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useRouter } from "next/navigation";
-import { Search, ShieldCheck, Network, Zap, Wallet, Brain, CheckCircle2 } from "lucide-react";
-import { YIELD_SWARM_REGISTRY, SMART_ACCOUNT_FACTORY } from "@/lib/contracts";
+import { Search, ShieldCheck, Network, Zap, Wallet, Brain, CheckCircle2, Key } from "lucide-react";
+import { YIELD_SWARM_REGISTRY, SMART_ACCOUNT_FACTORY, SESSION_KEY_MODULE, SMART_ACCOUNT_EXECUTE_ABI } from "@/lib/contracts";
 
-type Step = "welcome" | "smart-account" | "mint-swarm" | "llm-config" | "complete";
+type Step = "welcome" | "smart-account" | "mint-swarm" | "session-key" | "llm-config" | "complete";
 
-const STEPS: Step[] = ["welcome", "smart-account", "mint-swarm", "llm-config", "complete"];
+const STEPS: Step[] = ["welcome", "smart-account", "mint-swarm", "session-key", "llm-config", "complete"];
 
-const STEP_LABELS = ["Account", "Agents", "LLM", "Ready"];
+const STEP_LABELS = ["Account", "Agents", "Session Key", "LLM", "Ready"];
 
 const AGENT_META = [
   { type: "scout", name: "Scout", icon: Search, desc: "Scans DeFi protocols for yield opportunities" },
@@ -48,6 +48,15 @@ export function SetupWizard() {
   const { isLoading: isMintConfirming, isSuccess: isMintSuccess } =
     useWaitForTransactionReceipt({ hash: mintSwarmHash });
 
+  const {
+    writeContract: writeSessionKey,
+    data: sessionKeyHash,
+    isPending: isSessionKeyPending,
+  } = useWriteContract();
+
+  const { isLoading: isSessionKeyConfirming, isSuccess: isSessionKeySuccess } =
+    useWaitForTransactionReceipt({ hash: sessionKeyHash });
+
   const [provider, setProvider] = useState<"anthropic" | "openrouter" | "managed">("anthropic");
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState(ANTHROPIC_MODELS[0].id);
@@ -73,6 +82,30 @@ export function SetupWizard() {
       address: YIELD_SWARM_REGISTRY.address,
       abi: YIELD_SWARM_REGISTRY.abi,
       functionName: "requestSwarm",
+    });
+  }
+
+  function handleGrantSessionKey() {
+    const backendEOA = process.env.NEXT_PUBLIC_SESSION_KEY_ADDRESS ?? "0xc1Ac7fd08367321b5d486a81349Ab1CB793aF0C1";
+    const zgFlowAddress = process.env.NEXT_PUBLIC_ZG_FLOW_ADDRESS ?? "0xbD2C3F0E65eDF5582141C35969d66e34e4ef3fD0";
+    const sevenDays = BigInt(Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60);
+    const now = BigInt(Math.floor(Date.now() / 1000));
+
+    writeSessionKey({
+      address: SESSION_KEY_MODULE.address,
+      abi: SESSION_KEY_MODULE.abi,
+      functionName: "grantSessionKey",
+      args: [
+        backendEOA as `0x${string}`,
+        {
+          maxSpendPerTx: BigInt("10000000000000000"),
+          maxTotalSpend: BigInt("100000000000000000"),
+          allowedTargets: [zgFlowAddress as `0x${string}`],
+          validUntil: sevenDays,
+          validAfter: now,
+          totalSpent: 0n,
+        },
+      ],
     });
   }
 
@@ -209,12 +242,56 @@ export function SetupWizard() {
             )}
             {isMintSuccess && (
               <button
-                onClick={() => setStep("llm-config")}
+                onClick={() => setStep("session-key")}
                 className="mx-auto text-sm font-semibold text-secondary underline-offset-2 hover:underline"
               >
                 Continue
               </button>
             )}
+          </div>
+        )}
+
+        {step === "session-key" && (
+          <div className="flex flex-col items-center gap-6 text-center">
+            <div className="glass grid size-16 place-items-center rounded-xl">
+              <Key className="size-8 text-secondary" />
+            </div>
+            <h2 className="text-2xl font-semibold tracking-tight">Authorize Agent Memory</h2>
+            <p className="text-sm leading-relaxed text-on-surface-variant">
+              Grant a bounded session key so your agents can store memory on 0G Storage without interrupting you.
+            </p>
+            <div className="w-full glass p-4 text-left">
+              <div className="grid gap-2 text-xs text-on-surface-variant">
+                <div className="flex justify-between"><span>Max per tx</span><span className="font-mono">0.01 0G</span></div>
+                <div className="flex justify-between"><span>Total budget</span><span className="font-mono">0.1 0G</span></div>
+                <div className="flex justify-between"><span>Expires</span><span>7 days</span></div>
+                <div className="flex justify-between"><span>Target</span><span className="font-mono text-[10px]">0G FixedPriceFlow</span></div>
+              </div>
+            </div>
+            {isSessionKeySuccess ? (
+              <div className="flex items-center gap-2 text-tertiary">
+                <CheckCircle2 className="size-5" />
+                <span className="text-sm font-semibold">Session key granted</span>
+              </div>
+            ) : isSessionKeyConfirming || isSessionKeyPending ? (
+              <div className="inline-flex h-11 items-center gap-2 rounded-xl border border-secondary/30 bg-secondary/5 px-6">
+                <div className="size-4 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+                <span className="text-sm font-medium text-secondary">Confirming...</span>
+              </div>
+            ) : (
+              <button
+                onClick={handleGrantSessionKey}
+                className="inline-flex h-11 items-center rounded-xl bg-primary px-8 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+              >
+                Grant Session Key
+              </button>
+            )}
+            <button
+              onClick={() => setStep("llm-config")}
+              className={`text-sm font-semibold underline-offset-2 hover:underline ${isSessionKeySuccess ? "text-secondary" : "text-on-surface-variant/60"}`}
+            >
+              {isSessionKeySuccess ? "Continue" : "Skip for now"}
+            </button>
           </div>
         )}
 
