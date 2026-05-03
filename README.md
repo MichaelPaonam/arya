@@ -178,8 +178,8 @@ Prerequisites for running ARYA locally:
 
 ```bash
 # Clone the repository
-git clone https://github.com/MichaelPaonam/open-agent.git
-cd open-agent
+git clone https://github.com/MichaelPaonam/arya.git
+cd arya
 
 # Install Foundry (if not already installed)
 curl -L https://foundry.paradigm.xyz | bash
@@ -225,15 +225,16 @@ npx vitest run         # 66 tests across 14 files
 
 ### Deploy to Vercel
 
-```bash
-# Install Vercel CLI
-npm i -g vercel
+The project is deployed as a monorepo on Vercel with the following build settings:
 
-# Deploy (frontend + serverless agent functions)
-vercel --prod
-```
+| Setting | Value |
+|---------|-------|
+| Root Directory | (repo root) |
+| Install Command | `cd packages/frontend && npm install --legacy-peer-deps && cd ../agents && npm install` |
+| Build Command | `cd packages/frontend && npm run build` |
+| Output Directory | `packages/frontend/.next` |
 
-Agents run as Vercel serverless functions (`/api/agents/*`). The Scout Agent scans on a 15-minute cron schedule. Risk, Orchestrator, and Executor agents trigger on demand.
+Agents run as Vercel serverless functions (`/api/pipeline`). The pipeline triggers on demand from the dashboard.
 
 ## Project Structure
 
