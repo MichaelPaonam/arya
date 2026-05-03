@@ -5,6 +5,11 @@ export function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") || "";
   const pathname = request.nextUrl.pathname;
 
+  // Skip subdomain routing in local dev
+  if (hostname.includes("localhost") || hostname.includes("127.0.0.1")) {
+    return NextResponse.next();
+  }
+
   // app.arya-testnet.com → rewrite to /app routes
   if (hostname.startsWith("app.")) {
     // If visiting root of app subdomain, rewrite to /app
