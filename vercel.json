@@ -1,4 +1,5 @@
 {
+  "framework": "nextjs",
   "installCommand": "cd packages/frontend && npm install --legacy-peer-deps && cd ../agents && npm install",
   "buildCommand": "cd packages/frontend && npm run build",
   "outputDirectory": "packages/frontend/.next"
