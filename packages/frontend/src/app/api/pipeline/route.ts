@@ -1,7 +1,7 @@
 import { runPipeline } from "@arya/agents";
 import type { PipelineConfig, PipelineEvent, LlmConfig } from "@arya/agents";
 import { mockPipelineState } from "@/mocks/pipeline-state";
-import { createWalletClient, createPublicClient, http, keccak256, toHex, defineChain } from "viem";
+import { createWalletClient, http, keccak256, toHex, defineChain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { STRATEGY_VAULT } from "@/lib/contracts";
 

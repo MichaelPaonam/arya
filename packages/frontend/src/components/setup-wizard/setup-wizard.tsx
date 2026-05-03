@@ -5,7 +5,7 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagm
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useRouter } from "next/navigation";
 import { Search, ShieldCheck, Network, Zap, Wallet, Brain, CheckCircle2, Key } from "lucide-react";
-import { YIELD_SWARM_REGISTRY, SMART_ACCOUNT_FACTORY, SESSION_KEY_MODULE, SMART_ACCOUNT_EXECUTE_ABI } from "@/lib/contracts";
+import { YIELD_SWARM_REGISTRY, SMART_ACCOUNT_FACTORY, SESSION_KEY_MODULE } from "@/lib/contracts";
 
 type Step = "connect-wallet" | "smart-account" | "mint-swarm" | "session-key" | "llm-config" | "complete";
 

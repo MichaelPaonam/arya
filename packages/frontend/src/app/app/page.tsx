@@ -68,7 +68,7 @@ export default function CommandCenterPage() {
     reject,
     reset,
   } = usePipeline();
-  const { isConnected, address } = useAccount();
+  const { isConnected } = useAccount();
   const vault = useStrategyVault();
   const [dialogProposal, setDialogProposal] = useState<StrategyProposal | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
