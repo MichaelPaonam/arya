@@ -168,7 +168,14 @@ async function uniswapPost(endpoint: string, body: Record<string, unknown>): Pro
     }
 
     if (!response.ok) {
-      throw new Error(`Uniswap API error: ${response.status}`);
+      const msg = response.status === 401
+        ? "Swap quote unavailable — API authentication issue"
+        : response.status === 403
+        ? "Swap quote unavailable — access denied"
+        : response.status === 404
+        ? "Swap route not found for this token pair"
+        : `Swap quote temporarily unavailable (status ${response.status})`;
+      throw new Error(msg);
     }
 
     return response.json();
