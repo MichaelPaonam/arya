@@ -1,0 +1,8 @@
+packages/contracts/lib/
+packages/contracts/broadcast/
+packages/contracts/out/
+packages/contracts/cache/
+packages/agents/node_modules/
+packages/frontend/node_modules/
+node_modules/
+.git/
